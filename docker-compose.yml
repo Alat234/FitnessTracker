@@ -1,0 +1,16 @@
+ services:
+   fitness-tracker-db:
+     image: mariadb:latest
+     environment:
+       MARIADB_DATABASE: fitness-tracker
+       MARIADB_USER: vladyslav-atamaniuk
+       MARIADB_PASSWORD: fgjksyfhsz30
+       MARIADB_ROOT_PASSWORD: root
+     ports:
+       - "3306:3306"
+     volumes:
+      - dbstore:/var/lib/mysql
+
+
+ volumes:
+  dbstore:

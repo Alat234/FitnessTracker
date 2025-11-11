@@ -21,7 +21,7 @@ public class User {
     private String password;
 
     private Role role;
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "userIdentity", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserInfo userInfo;
 
 
