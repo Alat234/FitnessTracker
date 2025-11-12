@@ -13,16 +13,17 @@ import lombok.Setter;
 public class UserInfo {
 
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_info_id")
     private Long ID;
-
+    @Column(name="user_first_name")
     private String firstName;
-
+    @Column(name="user_last_name")
     private String lastName;
-
+    @Column(name="user_bio")
     private  String BIO;
-
+    @Column(name="user_phone_number")
     private String phoneNumber;
+
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name="user_id")
