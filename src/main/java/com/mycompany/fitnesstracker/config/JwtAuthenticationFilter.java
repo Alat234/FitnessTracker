@@ -2,6 +2,7 @@ package com.mycompany.fitnesstracker.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
+import java.util.Arrays;
 
 @Component
 @RequiredArgsConstructor
@@ -26,17 +28,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NotNull HttpServletRequest request,
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain)  throws ServletException, IOException {
-        final String authorizationHeader = request.getHeader("Authorization");
         final String jwt;
-        final  String userEmail;
-        if(authorizationHeader==null || !authorizationHeader.startsWith("Bearer ")){
-            filterChain.doFilter(request,response);
+        final String userEmail;
+
+        // 1. Шукаємо куку з іменем "jwt" у масиві всіх кук запиту
+        if (request.getCookies() == null) {
+            filterChain.doFilter(request, response);
             return;
         }
-        jwt=authorizationHeader.substring(7);
-        userEmail=jwtService.extractUsername(jwt);
-        if(userEmail!= null&& SecurityContextHolder.getContext().getAuthentication()==null){
-            UserDetails userDetails=this.userDetailsService.loadUserByUsername(userEmail);
+
+        // Використовуємо Stream API для пошуку
+        jwt = Arrays.stream(request.getCookies())
+                .filter(cookie -> "jwt".equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+
+        // 2. Якщо куки немає — просто йдемо далі
+        if (jwt == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // 3. Далі логіка залишається майже такою ж, як була
+        userEmail = jwtService.extractUsername(jwt);
+
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+
             if (jwtService.IsTokenValid(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
@@ -44,14 +63,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         userDetails.getAuthorities()
                 );
                 authenticationToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-
+                        new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         }
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
 
 
     }

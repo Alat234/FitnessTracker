@@ -13,12 +13,21 @@ public class AuthController {
     private  final AuthService authService;
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> registration(@RequestBody RegisterRequest registerRequest){
-        return ResponseEntity.ok(authService.register(registerRequest));
+
+        DataWithCookie<AuthenticationResponse> result = authService.register(registerRequest);
+        return ResponseEntity.ok()
+                .header("Set-Cookie",result.getCookie().toString())
+                .body(result.getData());
 
     }
     @PostMapping("/authentication")
     public ResponseEntity<AuthenticationResponse> authentication(@RequestBody AuthenticationRequest authenticationRecord){
-        return ResponseEntity.ok(authService.authenticate(authenticationRecord));
+
+        DataWithCookie<AuthenticationResponse> result = authService.authenticate(authenticationRecord);
+        return ResponseEntity.ok()
+                .header("Set-Cookie", result.getCookie().toString())
+                .body(result.getData());
+
     }
 
 

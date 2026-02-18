@@ -1,14 +1,14 @@
 package com.mycompany.fitnesstracker.Models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Getter
 @Setter
+@Builder
 @Table(name= "user_info")
 public class UserInfo {
 
