@@ -20,7 +20,7 @@ public class UserInfo {
     @Column(name="user_last_name")
     private String lastName;
     @Column(name="user_bio")
-    private  String BIO;
+    private  String bio;
     @Column(name="user_phone_number")
     private String phoneNumber;
 

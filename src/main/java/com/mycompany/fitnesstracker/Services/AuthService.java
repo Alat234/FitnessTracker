@@ -1,6 +1,7 @@
 package com.mycompany.fitnesstracker.Services;
 
 import com.mycompany.fitnesstracker.Models.*;
+import com.mycompany.fitnesstracker.Models.Enums.RegistrationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Repositories.UserRepository;
 import com.mycompany.fitnesstracker.config.JwtService;
@@ -17,17 +18,24 @@ import java.util.Objects;
 import java.util.Optional;
 @RequiredArgsConstructor
 @Service
-public class AuthService {    private final UserRepository userRepository;
+public class AuthService {
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public DataWithCookie<AuthenticationResponse> register(RegisterRequest registerRequest) {
+    public DataWithCookie<UserDTO> register(RegisterRequest registerRequest) {
+
+        var сheckUser=userRepository.findUserByEmailIs(registerRequest.getEmail());
+        if(сheckUser.isPresent()){
+            throw new BaseException("User with this email exists",HttpStatus.CONFLICT);
+        }
 
         var user= User.builder()
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .email(registerRequest.getEmail())
                 .role(Role.ROLE_USER)
+                .authProvider(RegistrationType.LOCAL)
                 .build();
         var info = UserInfo.builder()
                 .firstName(registerRequest.getName())
@@ -41,7 +49,7 @@ public class AuthService {    private final UserRepository userRepository;
 
     }
 
-    public DataWithCookie<AuthenticationResponse> authenticate (AuthenticationRequest authenticationRequest) {
+    public DataWithCookie<UserDTO> authenticate (AuthenticationRequest authenticationRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         authenticationRequest.getEmail(),
@@ -55,7 +63,7 @@ public class AuthService {    private final UserRepository userRepository;
     }
 
 
-    public DataWithCookie<AuthenticationResponse> generateFullResponse(User user) {
+    public DataWithCookie<UserDTO> generateFullResponse(User user) {
 
         var jwtToken=jwtService.generateToken(user);
         ResponseCookie cookie=ResponseCookie.from("jwt",jwtToken).
@@ -64,9 +72,18 @@ public class AuthService {    private final UserRepository userRepository;
                 path("/").
                 maxAge(365 * 24 * 60 * 60).
                 build();
-        var response=  AuthenticationResponse.builder()
+        var userInfo = user.getUserInfo();
+        var userInfoDTO = new UserInfoDTO(
+                userInfo.getFirstName(),
+                userInfo.getLastName(),
+                userInfo.getBio(),
+                userInfo.getPhoneNumber()
+        );
+        var response=  UserDTO.builder()
                 .email(user.getEmail())
-                .name(user.getUserInfo().getFirstName())
+                .firstName(user.getUserInfo().getFirstName())
+                .role(user.getRole())
+                .userInfoDTO(userInfoDTO)
                 .build();
         return new DataWithCookie<>(response,cookie);
 

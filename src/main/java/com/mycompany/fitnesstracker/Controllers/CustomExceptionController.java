@@ -14,6 +14,7 @@ public class CustomExceptionController {
     public ResponseEntity<ErrorResponse> handleException(BaseException e){
         ErrorResponse response=new ErrorResponse(e.getMessage(),e.getStatus().value(), System.currentTimeMillis());
         return new ResponseEntity<>(response, e.getStatus());
+
     }
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleAuthError(BadCredentialsException ex) {

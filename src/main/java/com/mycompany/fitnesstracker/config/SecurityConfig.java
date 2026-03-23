@@ -1,5 +1,7 @@
 package com.mycompany.fitnesstracker.config;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -41,7 +44,28 @@ public class SecurityConfig {
 
                 // 4. Провайдер і фільтр додаються без .and()
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(logout -> logout
+                .logoutUrl("/api/auth/logout") // URL для запиту з фронтенду
+                .addLogoutHandler((request, response, authentication) -> {
+                    // Тут можна додати логіку, якщо ти захочеш заносити токен у чорний список
+                    // Але поки що достатньо очистити контекст
+                    SecurityContextHolder.clearContext();
+                })
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    Cookie cookie = new Cookie("jwt", null);
+                    cookie.setPath("/");
+                    cookie.setHttpOnly(true);
+                    cookie.setMaxAge(0); // Кажемо браузеру видалити негайно
+                    // Якщо використовуєш HTTPS, додай: cookie.setSecure(true);
+                    response.addCookie(cookie);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                })
+        );
+
+
+
 
         return http.build();
 

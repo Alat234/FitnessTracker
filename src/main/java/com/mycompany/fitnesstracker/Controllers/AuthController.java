@@ -12,18 +12,18 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private  final AuthService authService;
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> registration(@RequestBody RegisterRequest registerRequest){
+    public ResponseEntity<UserDTO> registration(@RequestBody RegisterRequest registerRequest){
 
-        DataWithCookie<AuthenticationResponse> result = authService.register(registerRequest);
+        DataWithCookie<UserDTO> result = authService.register(registerRequest);
         return ResponseEntity.ok()
                 .header("Set-Cookie",result.getCookie().toString())
                 .body(result.getData());
 
     }
     @PostMapping("/authentication")
-    public ResponseEntity<AuthenticationResponse> authentication(@RequestBody AuthenticationRequest authenticationRecord){
+    public ResponseEntity<UserDTO> authentication(@RequestBody AuthenticationRequest authenticationRecord){
 
-        DataWithCookie<AuthenticationResponse> result = authService.authenticate(authenticationRecord);
+        DataWithCookie<UserDTO> result = authService.authenticate(authenticationRecord);
         return ResponseEntity.ok()
                 .header("Set-Cookie", result.getCookie().toString())
                 .body(result.getData());
