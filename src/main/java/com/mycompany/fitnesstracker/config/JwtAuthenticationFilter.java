@@ -1,5 +1,6 @@
 package com.mycompany.fitnesstracker.config;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -24,12 +25,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private  final UserDetailsService userDetailsService;
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth/");
+    }
+    @Override
     protected void doFilterInternal(
             @NotNull HttpServletRequest request,
             @NotNull HttpServletResponse response,
             @NotNull FilterChain filterChain)  throws ServletException, IOException {
         final String jwt;
-        final String userEmail;
+         String userEmail=null;
 
         // 1. Шукаємо куку з іменем "jwt" у масиві всіх кук запиту
         if (request.getCookies() == null) {
@@ -50,8 +56,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3. Далі логіка залишається майже такою ж, як була
-        userEmail = jwtService.extractUsername(jwt);
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+        } catch (ExpiredJwtException e) {
+
+            logger.warn("JWT Token is expired: " + e.getMessage());
+        } catch (Exception e) {
+            logger.warn("Invalid JWT Token: " + e.getMessage());
+        }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);

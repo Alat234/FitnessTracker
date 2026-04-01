@@ -1,10 +1,8 @@
 package com.mycompany.fitnesstracker.Models.WorkoutEntities;
 
+import com.mycompany.fitnesstracker.Models.Enums.BodyPart;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 public class Exercise {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +21,9 @@ public class Exercise {
     @Column(nullable = false, unique = true)
     private String name;
 
-    private String bodyPart;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BodyPart bodyPart;
 
     private String description;
 

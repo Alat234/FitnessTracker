@@ -2,12 +2,14 @@ package com.mycompany.fitnesstracker.Models;
 
 import com.mycompany.fitnesstracker.Models.Enums.RegistrationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
+import com.mycompany.fitnesstracker.Models.WorkOutProgramEntities.WorkoutProgram;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -35,6 +37,9 @@ public class User implements UserDetails {
     private Role role;
 
     private RegistrationType authProvider;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<WorkoutProgram> workoutPrograms = new ArrayList<>();
 
     @OneToOne(mappedBy = "userIdentity", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserInfo userInfo;
