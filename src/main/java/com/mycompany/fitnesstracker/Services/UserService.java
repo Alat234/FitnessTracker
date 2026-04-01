@@ -41,4 +41,10 @@ public class UserService {
         return userMapper.toDTO(tempUser);
 
     }
+    public User getValidatedUserForAction(String email) {
+        User user = userRepository.findUserByEmailIs(email)
+                .orElseThrow(() -> new BaseException("User not found",HttpStatus.NOT_FOUND));
+
+        return user;
+    }
 }

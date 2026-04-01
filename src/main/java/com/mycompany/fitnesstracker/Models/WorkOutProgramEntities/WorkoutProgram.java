@@ -1,10 +1,8 @@
 package com.mycompany.fitnesstracker.Models.WorkOutProgramEntities;
 
+import com.mycompany.fitnesstracker.Models.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 public class WorkoutProgram {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +24,10 @@ public class WorkoutProgram {
     private int dayAWeek;
 
     private String goal;
+    @ManyToOne(fetch = FetchType.LAZY)
+
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
     @OneToMany(mappedBy = "workoutProgram",cascade = CascadeType.ALL,orphanRemoval = true)
     private List<WorkoutTemplate> workoutTemplates= new ArrayList<>();
     public void addWorkOutTemplate(WorkoutTemplate workoutTemplate){

@@ -1,10 +1,7 @@
 package com.mycompany.fitnesstracker.Models.WorkOutProgramEntities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,13 +11,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 public class WorkoutTemplate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "workout_template_id")
     private Long id;
+
     private String name;
-    private  String description;
     @ManyToOne(fetch =  FetchType.LAZY)
     @JoinColumn(name = "workout_program_id")
     private WorkoutProgram workoutProgram;
