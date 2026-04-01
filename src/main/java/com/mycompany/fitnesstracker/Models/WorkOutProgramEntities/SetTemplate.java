@@ -3,16 +3,14 @@ package com.mycompany.fitnesstracker.Models.WorkOutProgramEntities;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.Exercise;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.WorkOut;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Builder
 public class SetTemplate {
      @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
