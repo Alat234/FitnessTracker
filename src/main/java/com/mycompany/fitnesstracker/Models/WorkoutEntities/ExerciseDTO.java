@@ -13,4 +13,5 @@ public class ExerciseDTO {
     private String name;
     private BodyPart bodyPart;
     private String description;
+    private String imageUrl;
 }

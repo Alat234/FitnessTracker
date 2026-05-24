@@ -18,6 +18,8 @@ public class ExerciseMapper {
         dto.setBodyPart(exercise.getBodyPart());
         dto.setDescription(exercise.getDescription());
 
+        dto.setImageUrl(exercise.getImageUrl());
+
         return dto;
     }
 
@@ -33,6 +35,10 @@ public class ExerciseMapper {
         }
         if (dto.getDescription() != null) {
             entity.setDescription(dto.getDescription());
+        }
+        // Зазвичай файл оновлюється в Сервісі, але якщо передали готовий URL - мапимо і його
+        if (dto.getImageUrl() != null) {
+            entity.setImageUrl(dto.getImageUrl());
         }
     }
 }

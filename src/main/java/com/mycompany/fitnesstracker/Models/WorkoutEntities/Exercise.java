@@ -26,6 +26,7 @@ public class Exercise {
     private BodyPart bodyPart;
 
     private String description;
+    private String imageUrl;
 
 
 }

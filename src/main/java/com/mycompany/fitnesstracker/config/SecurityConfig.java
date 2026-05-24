@@ -26,46 +26,34 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws  Exception {
         http
                 .cors(org.springframework.security.config.Customizer.withDefaults())
-                // 1. Новий синтаксис вимкнення CSRF
+
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. Новий синтаксис для авторизації запитів (блок лямбда)
                 .authorizeHttpRequests(auth -> auth
-                        // Вкажіть тут ваші публічні ендпоінти
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Всі інші запити вимагають аутентифікації
                         .anyRequest().authenticated()
                 )
 
-                // 3. Новий синтаксис для сесій (блок лямбда)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // 4. Провайдер і фільтр додаються без .and()
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                 .logoutUrl("/api/auth/logout") // URL для запиту з фронтенду
                 .addLogoutHandler((request, response, authentication) -> {
-                    // Тут можна додати логіку, якщо ти захочеш заносити токен у чорний список
-                    // Але поки що достатньо очистити контекст
                     SecurityContextHolder.clearContext();
                 })
                 .logoutSuccessHandler((request, response, authentication) -> {
                     Cookie cookie = new Cookie("jwt", null);
                     cookie.setPath("/");
                     cookie.setHttpOnly(true);
-                    cookie.setMaxAge(0); // Кажемо браузеру видалити негайно
-                    // Якщо використовуєш HTTPS, додай: cookie.setSecure(true);
+                    cookie.setMaxAge(0);
                     response.addCookie(cookie);
 
                     response.setStatus(HttpServletResponse.SC_OK);
                 })
         );
-
-
-
 
         return http.build();
 
