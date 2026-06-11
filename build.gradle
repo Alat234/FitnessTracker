@@ -26,20 +26,25 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
-    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    compileOnly        'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // JDBC driver for MariaDB — explicit version so it is reliably on the runtime classpath
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.4.1'
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    runtimeOnly 'com.mysql:mysql-connector-j'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
 }
+
 tasks.withType(JavaCompile) {
     options.compilerArgs += "-Xlint:deprecation"
 }

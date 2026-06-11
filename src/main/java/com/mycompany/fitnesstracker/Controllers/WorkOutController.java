@@ -23,9 +23,9 @@ import java.util.List;
             try {
                 String email = SecurityContextHolder.getContext().getAuthentication().getName();
                 workOutService.saveWorkOut(workOutDTO, email);
-                return ResponseEntity.ok("Тренування успішно збережено");
+                return ResponseEntity.ok("Workout saved successfully");
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body("Помилка при збереженні: " + e.getMessage());
+                return ResponseEntity.badRequest().body("Failed to save workout: " + e.getMessage());
             }
         }
 
@@ -37,15 +37,15 @@ import java.util.List;
             return ResponseEntity.ok(history);
         }
 
-        // Видалення тренування за ID
+        // Delete workout by ID
         @DeleteMapping("/{id}")
         public ResponseEntity<String> deleteWorkout(@PathVariable Long id) {
             try {
                 String email = SecurityContextHolder.getContext().getAuthentication().getName();
                 workOutService.deleteWorkOut(id, email);
-                return ResponseEntity.ok("Тренування видалено");
+                return ResponseEntity.ok("Workout deleted");
             } catch (Exception e) {
-                return ResponseEntity.status(403).body("Помилка видалення: " + e.getMessage());
+                return ResponseEntity.status(403).body("Failed to delete workout: " + e.getMessage());
             }
         }
     }
