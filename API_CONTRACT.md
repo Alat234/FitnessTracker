@@ -68,10 +68,44 @@ FE = called by frontend today (`src/api/` in UI repo).
 | GET | `/api/trainer/clients` | — | List\<ClientDTO\> | TRAINER/ADMIN/GYM_OWNER | ✗ (frontend stub) |
 | GET | `/api/trainer/clients/{id}/progress` | path id | ClientProgressDTO | TRAINER/ADMIN/GYM_OWNER | ✗ (frontend stub) |
 
+Behavior (since 2026-06-12): clients are users with an **ACCEPTED TRAINER `UserConnection`** where viewer = current trainer (client sends the invite, trainer accepts). FRIEND connections never appear here. `/clients/{id}/progress`: 404 `"Client not found"` for unknown id; 403 `"This client is not assigned to you"` without an accepted TRAINER connection. Legacy `UserInfo.trainer` is deprecated and not consulted.
+
+### ConnectionController — `/api/connections` (invite-based progress sharing)
+| Method | Path | Request | Response | Access | FE |
+|---|---|---|---|---|---|
+| POST | `/api/connections/invites` | SendInviteRequest `{email, type: TRAINER\|FRIEND}` | ConnectionDTO (201) | authenticated (caller = owner) | ✗ not called yet |
+| GET | `/api/connections/outgoing` | — | List\<ConnectionDTO\> (all statuses, caller = owner) | authenticated | ✗ |
+| GET | `/api/connections/incoming` | — | List\<ConnectionDTO\> (PENDING + ACCEPTED, caller = viewer) | authenticated | ✗ |
+| POST | `/api/connections/{id}/accept` | path id | ConnectionDTO | viewer only | ✗ |
+| POST | `/api/connections/{id}/decline` | path id | ConnectionDTO | viewer only | ✗ |
+| DELETE | `/api/connections/{id}` | path id | 204, status → REVOKED | owner only | ✗ |
+
+Status codes / rules:
+- Invite: 400 — blank email, null type, self-invite, TRAINER invite to a user without ROLE_TRAINER; 404 — unknown target email; 409 `"Invite already exists"` — existing PENDING/ACCEPTED row for the same (owner, viewer, type). A DECLINED/REVOKED row is reused: reset to PENDING, default permission flags re-applied, `respondedAt` cleared.
+- Default permissions by type: TRAINER → all true; FRIEND → workouts + progressSummary only (nutrition and bodyMetrics false).
+- Accept/decline: 404 unknown id; 403 `"Only the invited user can respond"`; 409 `"Invite already processed"` if not PENDING.
+- Revoke: 404 unknown id; 403 `"Only the owner can revoke access"`; 409 `"Connection is not active"` unless PENDING/ACCEPTED. Row is kept (re-invite possible).
+
+DTO shapes:
+- `ConnectionDTO {id, type, status, owner: ConnectionUserDTO, viewer: ConnectionUserDTO, permissions: PermissionsDTO, createdAt, respondedAt}` (timestamps `yyyy-MM-dd HH:mm:ss`).
+- `ConnectionUserDTO {id, email, firstName, lastName}`.
+- `PermissionsDTO {workouts, nutrition, bodyMetrics, progressSummary}` (booleans).
+
+### ShareController — `/api/share`
+| Method | Path | Request | Response | Access | FE |
+|---|---|---|---|---|---|
+| GET | `/api/share/{ownerId}/progress` | path ownerId | SharedProgressDTO | authenticated + ≥1 ACCEPTED connection (owner = ownerId, viewer = caller) | ✗ not called yet |
+
+- 404 `"User not found"` — unknown ownerId; 403 `"No access to this user's progress"` — no ACCEPTED connection (PENDING/DECLINED/REVOKED don't count). Permission flags are OR-merged when both FRIEND and TRAINER rows exist for the pair.
+- `SharedProgressDTO {owner: ConnectionUserDTO, permissions: PermissionsDTO, workoutHistory: List<WorkOutDTO>|null, totalWorkouts|null, totalVolumeKg|null, todayNutrition: DailyNutritionSummaryDTO|null, bodyMetrics: always null (reserved)}` — sections without permission are null; `permissions` always present and tells the frontend what to render.
+
 ## Not implemented (frontend must not call yet)
 
 - Admin user management — not implemented. Frontend AdminUsersPage is only a placeholder; decide whether to implement minimal admin user management or hide the page for the demo (see `TODO_BACKEND.md`).
 - Profile (`UserInfo`) read/update endpoints — planned.
-- Body metrics endpoints — planned.
+- Body metrics endpoints — planned (`SharedProgressDTO.bodyMetrics` is a reserved null until then).
+- Connection permission editing (`PATCH /api/connections/{id}/permissions`) — not implemented.
 - Gym endpoints — entity only, no controller.
-- Password change/reset; trainer client-assignment write endpoints.
+- Password change/reset — none.
+
+> Note: the frontend copy of this file is NOT yet updated with `/api/connections` and `/api/share` — sync it during the frontend integration phase.
