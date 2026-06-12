@@ -17,7 +17,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Усі юзери, у яких в UserInfo призначено цього тренера.
      * Робимо через явний JPQL, бо UserInfo має @MapsId і derived-query
      * по userInfo.trainer не завжди працює стабільно при lazy-loaded one-to-one.
+     *
+     * @deprecated Легасі-зв'язок UserInfo.trainer. Тренер-клієнт тепер через
+     * ACCEPTED TRAINER-рядки UserConnection (див. UserConnectionRepository).
+     * Залишено лише для можливого одноразового бекфілу старих даних.
      */
+    @Deprecated
     @Query("select u from User u join u.userInfo info where info.trainer = :trainer")
     List<User> findAllClientsByTrainer(@Param("trainer") User trainer);
 }

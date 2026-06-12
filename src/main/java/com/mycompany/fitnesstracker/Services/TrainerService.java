@@ -2,6 +2,9 @@ package com.mycompany.fitnesstracker.Services;
 
 import com.mycompany.fitnesstracker.Mappers.WorkOutMapper;
 import com.mycompany.fitnesstracker.Models.BaseException;
+import com.mycompany.fitnesstracker.Models.Connection.UserConnection;
+import com.mycompany.fitnesstracker.Models.Enums.ConnectionStatus;
+import com.mycompany.fitnesstracker.Models.Enums.ConnectionType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.Trainer.ClientDTO;
 import com.mycompany.fitnesstracker.Models.Trainer.ClientProgressDTO;
@@ -9,6 +12,7 @@ import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserInfo;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.WorkOut;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.WorkOutDTO;
+import com.mycompany.fitnesstracker.Repositories.UserConnectionRepository;
 import com.mycompany.fitnesstracker.Repositories.UserRepository;
 import com.mycompany.fitnesstracker.Repositories.WorkOutRepository;
 import jakarta.transaction.Transactional;
@@ -26,11 +30,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TrainerService {
 
-    private final UserService        userService;
-    private final UserRepository     userRepository;
-    private final WorkOutRepository  workOutRepository;
-    private final WorkOutMapper      workOutMapper;
-    private final NutritionService   nutritionService;
+    private final UserService              userService;
+    private final UserRepository           userRepository;
+    private final UserConnectionRepository connectionRepository;
+    private final WorkOutRepository        workOutRepository;
+    private final WorkOutMapper            workOutMapper;
+    private final NutritionService         nutritionService;
 
     /* ── Permission guard ──────────────────────────────────── */
     private User requireTrainer(String email) {
@@ -44,11 +49,15 @@ public class TrainerService {
     }
 
     /* ── List of clients ───────────────────────────────────── */
+    /** Клієнти — власники ACCEPTED TRAINER-зв'язків, де viewer = тренер. FRIEND-зв'язки сюди не потрапляють. */
     @Transactional
     public List<ClientDTO> getClients(String trainerEmail) {
         User trainer = requireTrainer(trainerEmail);
 
-        return userRepository.findAllClientsByTrainer(trainer).stream()
+        return connectionRepository
+                .findAllByViewerAndTypeAndStatus(trainer, ConnectionType.TRAINER, ConnectionStatus.ACCEPTED)
+                .stream()
+                .map(UserConnection::getOwner)
                 .map(this::toClientDTO)
                 .collect(Collectors.toList());
     }
@@ -61,9 +70,12 @@ public class TrainerService {
         User client = userRepository.findUserById(clientId)
                 .orElseThrow(() -> new BaseException("Client not found", HttpStatus.NOT_FOUND));
 
-        UserInfo info = client.getUserInfo();
-        if (info == null || info.getTrainer() == null
-                || !info.getTrainer().getId().equals(trainer.getId())) {
+        /* Доступ лише через ACCEPTED TRAINER-зв'язок (легасі UserInfo.trainer більше не читається) */
+        boolean hasTrainerAccess = connectionRepository
+                .findByOwnerAndViewerAndType(client, trainer, ConnectionType.TRAINER)
+                .filter(c -> c.getStatus() == ConnectionStatus.ACCEPTED)
+                .isPresent();
+        if (!hasTrainerAccess) {
             throw new BaseException("This client is not assigned to you", HttpStatus.FORBIDDEN);
         }
 
