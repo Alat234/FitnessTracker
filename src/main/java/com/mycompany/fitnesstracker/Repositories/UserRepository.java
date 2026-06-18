@@ -1,5 +1,6 @@
 package com.mycompany.fitnesstracker.Repositories;
 
+import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findUserById(Long id);
     Optional<User> findUserByEmailIs(String email);
+
+    /** All users with a given role — used by the Discover trainers directory. */
+    List<User> findAllByRole(Role role);
 
     /**
      * Усі юзери, у яких в UserInfo призначено цього тренера.

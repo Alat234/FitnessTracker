@@ -25,7 +25,9 @@ public class UserMapper {
                     source.getDateOfBirth(),
                     source.getSex(),
                     source.getActivityLevel(),
-                    source.getFitnessGoal()
+                    source.getFitnessGoal(),
+                    source.getSpecialization(),
+                    source.getImageUrl()
             );
         }
 

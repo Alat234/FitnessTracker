@@ -149,7 +149,7 @@ class ConnectionServiceTest {
 
         assertBase(() -> service.sendInvite(
                         new SendInviteRequest("friend@test.com", ConnectionType.FRIEND), "owner@test.com"),
-                HttpStatus.CONFLICT, "Invite already exists");
+                HttpStatus.CONFLICT, "Request already sent");
     }
 
     @Test
@@ -162,7 +162,7 @@ class ConnectionServiceTest {
 
         assertBase(() -> service.sendInvite(
                         new SendInviteRequest("friend@test.com", ConnectionType.FRIEND), "owner@test.com"),
-                HttpStatus.CONFLICT, "Invite already exists");
+                HttpStatus.CONFLICT, "Already connected");
     }
 
     @Test
@@ -297,6 +297,62 @@ class ConnectionServiceTest {
 
         assertBase(() -> service.revoke(10L, "owner@test.com"),
                 HttpStatus.CONFLICT, "Connection is not active");
+    }
+
+    /* ── requestTrainerConnection (Discover, by trainer id) ── */
+
+    @Test
+    void requestTrainerConnection_byId_createsPendingTrainer() {
+        when(userService.getValidatedUserForAction("owner@test.com")).thenReturn(owner);
+        when(userRepository.findUserById(3L)).thenReturn(Optional.of(trainer));
+        when(connectionRepository.findByOwnerAndViewerAndType(owner, trainer, ConnectionType.TRAINER))
+                .thenReturn(Optional.empty());
+        when(connectionRepository.save(any(UserConnection.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ConnectionDTO dto = service.requestTrainerConnection(3L, "owner@test.com");
+
+        assertThat(dto.getStatus()).isEqualTo(ConnectionStatus.PENDING);
+        assertThat(dto.getType()).isEqualTo(ConnectionType.TRAINER);
+    }
+
+    @Test
+    void requestTrainerConnection_nonTrainerId_badRequest() {
+        when(userService.getValidatedUserForAction("owner@test.com")).thenReturn(owner);
+        when(userRepository.findUserById(2L)).thenReturn(Optional.of(friend));
+
+        assertBase(() -> service.requestTrainerConnection(2L, "owner@test.com"),
+                HttpStatus.BAD_REQUEST, "Target user is not a trainer");
+    }
+
+    @Test
+    void requestTrainerConnection_self_badRequest() {
+        User ownerTrainer = user(9L, "owner@test.com", Role.ROLE_TRAINER);
+        when(userService.getValidatedUserForAction("owner@test.com")).thenReturn(ownerTrainer);
+        when(userRepository.findUserById(9L)).thenReturn(Optional.of(ownerTrainer));
+
+        assertBase(() -> service.requestTrainerConnection(9L, "owner@test.com"),
+                HttpStatus.BAD_REQUEST, "Cannot invite yourself");
+    }
+
+    @Test
+    void requestTrainerConnection_missingTrainer_notFound() {
+        when(userService.getValidatedUserForAction("owner@test.com")).thenReturn(owner);
+        when(userRepository.findUserById(404L)).thenReturn(Optional.empty());
+
+        assertBase(() -> service.requestTrainerConnection(404L, "owner@test.com"),
+                HttpStatus.NOT_FOUND, "Trainer not found");
+    }
+
+    @Test
+    void requestTrainerConnection_duplicatePending_conflict() {
+        UserConnection existing = connection(11L, owner, trainer, ConnectionType.TRAINER, ConnectionStatus.PENDING);
+        when(userService.getValidatedUserForAction("owner@test.com")).thenReturn(owner);
+        when(userRepository.findUserById(3L)).thenReturn(Optional.of(trainer));
+        when(connectionRepository.findByOwnerAndViewerAndType(owner, trainer, ConnectionType.TRAINER))
+                .thenReturn(Optional.of(existing));
+
+        assertBase(() -> service.requestTrainerConnection(3L, "owner@test.com"),
+                HttpStatus.CONFLICT, "Request already sent");
     }
 
     /* ── helpers ──────────────────────────────────────────── */

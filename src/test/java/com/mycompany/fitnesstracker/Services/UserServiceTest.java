@@ -4,6 +4,7 @@ import com.mycompany.fitnesstracker.Mappers.UserMapper;
 import com.mycompany.fitnesstracker.Models.BaseException;
 import com.mycompany.fitnesstracker.Models.ChangePasswordRequest;
 import com.mycompany.fitnesstracker.Models.UpdateProfileRequest;
+import com.mycompany.fitnesstracker.Models.UpdateTrainerProfileRequest;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserDTO;
 import com.mycompany.fitnesstracker.Models.UserInfo;
@@ -187,5 +188,58 @@ class UserServiceTest {
                 .map(RecordComponent::getName)
                 .anyMatch(name -> name.toLowerCase().contains("password"));
         assertTrue(!hasPassword, "UserDTO must not expose a password field");
+    }
+
+    /* ── Trainer public profile ── */
+
+    private User trainerUser() {
+        User user = User.builder()
+                .id(1L).email(EMAIL).role(Role.ROLE_TRAINER)
+                .password("hash").authProvider(RegistrationType.LOCAL).build();
+        user.setUserInfo(UserInfo.builder().userIdentity(user).build());
+        return user;
+    }
+
+    private UpdateTrainerProfileRequest trainerReq(String spec, String img) {
+        UpdateTrainerProfileRequest r = new UpdateTrainerProfileRequest();
+        r.setSpecialization(spec);
+        r.setImageUrl(img);
+        return r;
+    }
+
+    @Test
+    void updateTrainerProfile_trainer_setsFields_andSaves() {
+        User user = trainerUser();
+        when(userRepository.findUserByEmailIs(EMAIL)).thenReturn(Optional.of(user));
+        when(userMapper.toDTO(user)).thenReturn(UserDTO.builder().email(EMAIL).build());
+
+        service.updateTrainerProfile(trainerReq("  Strength  ", "https://img/t.jpg"));
+
+        assertEquals("Strength", user.getUserInfo().getSpecialization()); // trimmed
+        assertEquals("https://img/t.jpg", user.getUserInfo().getImageUrl());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateTrainerProfile_nonTrainer_forbidden_noSave() {
+        User user = localUser("hash"); // ROLE_USER
+        when(userRepository.findUserByEmailIs(EMAIL)).thenReturn(Optional.of(user));
+
+        assertThrows(BaseException.class,
+                () -> service.updateTrainerProfile(trainerReq("Strength", "https://img/t.jpg")));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTrainerProfile_doesNotChangeEmailRoleOrPassword() {
+        User user = trainerUser();
+        when(userRepository.findUserByEmailIs(EMAIL)).thenReturn(Optional.of(user));
+        when(userMapper.toDTO(user)).thenReturn(UserDTO.builder().email(EMAIL).build());
+
+        service.updateTrainerProfile(trainerReq("Yoga", null));
+
+        assertEquals(EMAIL, user.getEmail());
+        assertEquals(Role.ROLE_TRAINER, user.getRole());
+        assertEquals("hash", user.getPassword());
     }
 }

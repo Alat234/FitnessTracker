@@ -2,6 +2,9 @@ package com.mycompany.fitnesstracker.Controllers;
 
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymCardDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymDetailsDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerCardDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerDetailsDTO;
+import com.mycompany.fitnesstracker.Models.Discover.TrainerConnectResultDTO;
 import com.mycompany.fitnesstracker.Models.UserDTO;
 import com.mycompany.fitnesstracker.Services.DiscoverService;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +47,22 @@ public class DiscoverController {
     @DeleteMapping("/gyms/selection")
     public ResponseEntity<UserDTO> leaveGym() {
         return ResponseEntity.ok(discoverService.leaveGym());
+    }
+
+    /* ── Trainers ── */
+
+    @GetMapping("/trainers")
+    public ResponseEntity<List<DiscoverTrainerCardDTO>> getTrainers() {
+        return ResponseEntity.ok(discoverService.getTrainers());
+    }
+
+    @GetMapping("/trainers/{id}")
+    public ResponseEntity<DiscoverTrainerDetailsDTO> getTrainer(@PathVariable Long id) {
+        return ResponseEntity.ok(discoverService.getTrainer(id));
+    }
+
+    @PostMapping("/trainers/{id}/connect")
+    public ResponseEntity<TrainerConnectResultDTO> connectTrainer(@PathVariable Long id) {
+        return ResponseEntity.ok(discoverService.connectTrainer(id));
     }
 }

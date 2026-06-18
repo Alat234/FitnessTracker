@@ -51,6 +51,13 @@ public class UserInfo {
     @Column(name = "user_fitness_goal")
     private FitnessGoal fitnessGoal;
 
+    /* ── Public trainer profile fields (shown in Discover). Populated via DB for now. ── */
+    @Column(name = "user_specialization")
+    private String specialization;
+
+    @Column(name = "user_image_url")
+    private String imageUrl;
+
     /* Gym the user selected from Discover (one per user). Separate from Gym.gymOwner. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "selected_gym_id")

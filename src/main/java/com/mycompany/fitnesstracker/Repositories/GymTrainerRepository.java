@@ -17,4 +17,7 @@ public interface GymTrainerRepository extends JpaRepository<GymTrainer, Long> {
     boolean existsByGymAndTrainer(Gym gym, User trainer);
 
     long countByGym(Gym gym);
+
+    /** A trainer's gym (MVP: at most one) — for the Discover trainer's gym name. */
+    Optional<GymTrainer> findFirstByTrainer(User trainer);
 }

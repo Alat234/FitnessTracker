@@ -28,6 +28,15 @@ FE = called by frontend today (`src/api/` in UI repo).
 | Method | Path | Request | Response | Access | FE |
 |---|---|---|---|---|---|
 | GET | `/api/user/me` | — | UserDTO | authenticated | ✓ |
+| PUT | `/api/user/me` | UpdateProfileRequest `{firstName, lastName, phoneNumber, bio}` | UserDTO | authenticated | ✓ |
+| POST | `/api/user/me/password` | ChangePasswordRequest `{currentPassword, newPassword}` | 204 | authenticated | ✓ |
+| PUT | `/api/user/me/body-metrics` | BodyMetricsRequest `{heightCm, weightKg, dateOfBirth, sex, activityLevel, fitnessGoal}` | UserDTO | authenticated | ✓ |
+| PUT | `/api/user/me/trainer-profile` | UpdateTrainerProfileRequest `{specialization, imageUrl}` | UserDTO | authenticated + **ROLE_TRAINER** | ✓ |
+
+- `UserDTO {email, firstName, role, userInfoDTO, selectedGym}` — never includes password.
+- `userInfoDTO {firstName, lastName, BIO, phoneNumber, heightCm, weightKg, dateOfBirth, sex, activityLevel, fitnessGoal, specialization, imageUrl}`; `selectedGym {id, name, city, imageUrl}` (null if none).
+- `PUT /me` = personal data only (never email/role/id/password/metrics). `POST /me/password`: BCrypt `matches` on current, rejects non-LOCAL / blank-password accounts (400 `"Password change is only available for password-based accounts."`), wrong current → 400, success 204. `PUT /me/trainer-profile`: sets specialization+imageUrl only, 403 for non-trainers.
+- Enums: `sex` MALE|FEMALE; `activityLevel` SEDENTARY|LIGHT|MODERATE|ACTIVE|VERY_ACTIVE; `fitnessGoal` LOSE|MAINTAIN|GAIN; `dateOfBirth` `yyyy-MM-dd`.
 
 ### ExerciseController — `/api/exercise`
 | Method | Path | Request | Response | Access | FE |
@@ -58,27 +67,32 @@ FE = called by frontend today (`src/api/` in UI repo).
 | GET | `/api/nutrition/log` | query `date` (ISO.DATE, optional) | List\<NutritionLogDTO\> | authenticated | ✓ |
 | POST | `/api/nutrition/log` | NutritionLogDTO | NutritionLogDTO (201) | authenticated | ✓ |
 | DELETE | `/api/nutrition/log/{id}` | path id | 204 | authenticated | ✓ |
-| GET | `/api/nutrition/summary` | query `date` (ISO.DATE, optional) | DailyNutritionSummaryDTO | authenticated | ✗ |
-| GET | `/api/nutrition/goals` | — | NutritionGoalDTO | authenticated | ✗ |
-| PUT | `/api/nutrition/goals` | NutritionGoalDTO | NutritionGoalDTO | authenticated | ✗ |
+| GET | `/api/nutrition/summary` | query `date` (ISO.DATE, optional) | DailyNutritionSummaryDTO | authenticated | ✗ (FE sums logs client-side) |
+| GET | `/api/nutrition/goals` | — | NutritionGoalDTO | authenticated | ✓ |
+| PUT | `/api/nutrition/goals` | NutritionGoalDTO | NutritionGoalDTO | authenticated | ✓ |
+| GET | `/api/nutrition/calculator` | — | CalorieEstimateDTO | authenticated | ✓ |
+
+- `CalorieEstimateDTO {bmr, tdee, maintainCalories, loseCalories, gainCalories, selectedGoalCalories, complete, message}` — Mifflin-St Jeor from `UserInfo` metrics; `complete=false` (calorie fields null) + message when height/weight/DOB/sex missing or out of range. `updateGoalFromDTO` only overwrites non-null fields → FE "Apply" sends `{calorieGoal}` and leaves macros intact.
 
 ### TrainerController — `/api/trainer`
 | Method | Path | Request | Response | Access | FE |
 |---|---|---|---|---|---|
-| GET | `/api/trainer/clients` | — | List\<ClientDTO\> | TRAINER/ADMIN/GYM_OWNER | ✗ (frontend stub) |
-| GET | `/api/trainer/clients/{id}/progress` | path id | ClientProgressDTO | TRAINER/ADMIN/GYM_OWNER | ✗ (frontend stub) |
+| GET | `/api/trainer/clients` | — | List\<ClientDTO\> | TRAINER/ADMIN/GYM_OWNER | ✓ `trainerApi.js` → TrainerPage |
+| GET | `/api/trainer/clients/{id}/progress` | path id | ClientProgressDTO | TRAINER/ADMIN/GYM_OWNER | ✓ `trainerApi.js` → TrainerPage |
 
 Behavior (since 2026-06-12): clients are users with an **ACCEPTED TRAINER `UserConnection`** where viewer = current trainer (client sends the invite, trainer accepts). FRIEND connections never appear here. `/clients/{id}/progress`: 404 `"Client not found"` for unknown id; 403 `"This client is not assigned to you"` without an accepted TRAINER connection. Legacy `UserInfo.trainer` is deprecated and not consulted.
 
 ### ConnectionController — `/api/connections` (invite-based progress sharing)
 | Method | Path | Request | Response | Access | FE |
 |---|---|---|---|---|---|
-| POST | `/api/connections/invites` | SendInviteRequest `{email, type: TRAINER\|FRIEND}` | ConnectionDTO (201) | authenticated (caller = owner) | ✗ not called yet |
-| GET | `/api/connections/outgoing` | — | List\<ConnectionDTO\> (all statuses, caller = owner) | authenticated | ✗ |
-| GET | `/api/connections/incoming` | — | List\<ConnectionDTO\> (PENDING + ACCEPTED, caller = viewer) | authenticated | ✗ |
-| POST | `/api/connections/{id}/accept` | path id | ConnectionDTO | viewer only | ✗ |
-| POST | `/api/connections/{id}/decline` | path id | ConnectionDTO | viewer only | ✗ |
-| DELETE | `/api/connections/{id}` | path id | 204, status → REVOKED | owner only | ✗ |
+| POST | `/api/connections/invites` | SendInviteRequest `{email, type: TRAINER\|FRIEND}` | ConnectionDTO (201) | authenticated (caller = owner) | ✓ `connectionsApi.js` |
+| GET | `/api/connections/outgoing` | — | List\<ConnectionDTO\> (all statuses, caller = owner) | authenticated | ✓ |
+| GET | `/api/connections/incoming` | — | List\<ConnectionDTO\> (PENDING + ACCEPTED, caller = viewer) | authenticated | ✓ |
+| POST | `/api/connections/{id}/accept` | path id | ConnectionDTO | viewer only | ✓ |
+| POST | `/api/connections/{id}/decline` | path id | ConnectionDTO | viewer only | ✓ |
+| DELETE | `/api/connections/{id}` | path id | 204, status → REVOKED | owner only | ✓ |
+
+- Phase 6D: duplicate-invite messages are now `"Request already sent"` (PENDING) / `"Already connected"` (ACCEPTED). `ConnectionService.requestTrainerConnection(trainerId, ownerEmail)` (used by Discover connect) shares the same invite core but resolves the viewer by **trainer id** — no email needed.
 
 Status codes / rules:
 - Invite: 400 — blank email, null type, self-invite, TRAINER invite to a user without ROLE_TRAINER; 404 — unknown target email; 409 `"Invite already exists"` — existing PENDING/ACCEPTED row for the same (owner, viewer, type). A DECLINED/REVOKED row is reused: reset to PENDING, default permission flags re-applied, `respondedAt` cleared.
@@ -99,13 +113,44 @@ DTO shapes:
 - 404 `"User not found"` — unknown ownerId; 403 `"No access to this user's progress"` — no ACCEPTED connection (PENDING/DECLINED/REVOKED don't count). Permission flags are OR-merged when both FRIEND and TRAINER rows exist for the pair.
 - `SharedProgressDTO {owner: ConnectionUserDTO, permissions: PermissionsDTO, workoutHistory: List<WorkOutDTO>|null, totalWorkouts|null, totalVolumeKg|null, todayNutrition: DailyNutritionSummaryDTO|null, bodyMetrics: always null (reserved)}` — sections without permission are null; `permissions` always present and tells the frontend what to render.
 
+### GymController — `/api/gyms` (gym-owner management; permissions in `GymService`)
+| Method | Path | Request | Response | Access | FE |
+|---|---|---|---|---|---|
+| POST | `/api/gyms` | GymRequest | GymDTO (201) | GYM_OWNER/ADMIN | ✓ GymOwnerPage |
+| GET | `/api/gyms/my` | — | List\<GymDTO\> (0 or 1, MVP) | authenticated | ✓ |
+| GET | `/api/gyms/{id}` | path id | GymDTO (with trainers) | authenticated | ✓ GymPage |
+| PUT | `/api/gyms/{id}` | GymRequest | GymDTO | owner/ADMIN | ✓ |
+| POST | `/api/gyms/{id}/trainers` | AddTrainerRequest `{email}` | GymTrainerDTO (201) | owner/ADMIN | ✓ |
+| DELETE | `/api/gyms/{id}/trainers/{trainerId}` | path = **trainer User id** | 204 | owner/ADMIN | ✓ |
+| GET | `/api/gyms/{id}/trainers` | — | List\<GymTrainerDTO\> | authenticated | (UI reads `GymDTO.trainers`) |
+
+- One gym per owner (MVP, `gymOwner` OneToOne; 409 on duplicate). `GymRequest`/`GymDTO` include `imageUrl` + `isPublic` (6C). Add-trainer target must have ROLE_TRAINER.
+
+### DiscoverController — `/api/discover` (Phase 6C–6D, authenticated-only)
+| Method | Path | Request | Response | Access | FE |
+|---|---|---|---|---|---|
+| GET | `/api/discover/gyms` | — | List\<DiscoverGymCardDTO\> (public only) | authenticated | ✓ `discoverApi.js` |
+| GET | `/api/discover/gyms/{id}` | path id | DiscoverGymDetailsDTO (404 if missing/private) | authenticated | ✓ |
+| POST | `/api/discover/gyms/{id}/select` | path id | UserDTO (selectedGym set) | authenticated | ✓ |
+| DELETE | `/api/discover/gyms/selection` | — | UserDTO (selectedGym null) | authenticated | ✓ |
+| GET | `/api/discover/trainers` | — | List\<DiscoverTrainerCardDTO\> (ROLE_TRAINER users) | authenticated | ✓ |
+| GET | `/api/discover/trainers/{id}` | path id | DiscoverTrainerDetailsDTO (404 if not trainer) | authenticated | ✓ |
+| POST | `/api/discover/trainers/{id}/connect` | path id | TrainerConnectResultDTO `{status, message}` | authenticated | ✓ |
+
+- **Whitelist DTOs — no owner/trainer email, phone, password, auth provider, or client/private data.**
+  `DiscoverGymCardDTO {id, name, city, address, imageUrl, trainerCount}`;
+  `DiscoverGymDetailsDTO {id, name, description, city, address, phoneNumber, email` (gym contact)`, imageUrl, trainerCount, trainers:[{firstName,lastName}]}`;
+  `DiscoverTrainerCardDTO {id, firstName, lastName, specialization, imageUrl, gymName}`;
+  `DiscoverTrainerDetailsDTO {id, firstName, lastName, bio, specialization, imageUrl, gymName}`.
+- Connect: creates a TRAINER `UserConnection` (owner = caller, viewer = trainer-by-id). 400 self/non-trainer, 404 missing, 409 `"Request already sent"`/`"Already connected"`. Private gym (`isPublic=false`) hidden as 404; null isPublic = public.
+
 ## Not implemented (frontend must not call yet)
 
-- Admin user management — not implemented. Frontend AdminUsersPage is only a placeholder; decide whether to implement minimal admin user management or hide the page for the demo (see `TODO_BACKEND.md`).
-- Profile (`UserInfo`) read/update endpoints — planned.
-- Body metrics endpoints — planned (`SharedProgressDTO.bodyMetrics` is a reserved null until then).
+- Admin user management — not implemented (FE AdminUsersPage is a placeholder).
 - Connection permission editing (`PATCH /api/connections/{id}/permissions`) — not implemented.
-- Gym endpoints — entity only, no controller.
-- Password change/reset — none.
+- Articles/Posts, trainer reviews/results photos — not implemented (Discover Articles is a FE placeholder).
+- Public/unauthenticated Discover — intentionally not implemented (locked: auth-only).
+- Image **upload** — only legacy exercise images; gym/trainer use `imageUrl` strings.
+- Body-metrics **history/time-series** — metrics are single-value on `UserInfo`; `SharedProgressDTO.bodyMetrics` still reserved null.
 
-> Note: the frontend copy of this file is NOT yet updated with `/api/connections` and `/api/share` — sync it during the frontend integration phase.
+> Now implemented (were listed here): profile update + password change (`UserController`), body metrics + calorie calculator, Gym CRUD + Discover module, trainer public profile. Both `API_CONTRACT.md` copies (frontend + backend) updated together on 2026-06-18.

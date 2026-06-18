@@ -3,6 +3,7 @@ package com.mycompany.fitnesstracker.Controllers;
 import com.mycompany.fitnesstracker.Models.BodyMetricsRequest;
 import com.mycompany.fitnesstracker.Models.ChangePasswordRequest;
 import com.mycompany.fitnesstracker.Models.UpdateProfileRequest;
+import com.mycompany.fitnesstracker.Models.UpdateTrainerProfileRequest;
 import com.mycompany.fitnesstracker.Models.UserDTO;
 import com.mycompany.fitnesstracker.Services.UserService;
 import jakarta.validation.Valid;
@@ -40,6 +41,11 @@ public class UserController {
     @PutMapping("/me/body-metrics")
     public ResponseEntity<UserDTO> updateBodyMetrics(@Valid @RequestBody BodyMetricsRequest request) {
         return ResponseEntity.ok(userService.updateBodyMetrics(request));
+    }
+
+    @PutMapping("/me/trainer-profile")
+    public ResponseEntity<UserDTO> updateTrainerProfile(@Valid @RequestBody UpdateTrainerProfileRequest request) {
+        return ResponseEntity.ok(userService.updateTrainerProfile(request));
     }
 
 }

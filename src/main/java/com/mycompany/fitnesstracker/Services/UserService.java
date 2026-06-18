@@ -5,10 +5,12 @@ import com.mycompany.fitnesstracker.Models.BaseException;
 import com.mycompany.fitnesstracker.Models.BodyMetricsRequest;
 import com.mycompany.fitnesstracker.Models.ChangePasswordRequest;
 import com.mycompany.fitnesstracker.Models.UpdateProfileRequest;
+import com.mycompany.fitnesstracker.Models.UpdateTrainerProfileRequest;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserDTO;
 import com.mycompany.fitnesstracker.Models.UserInfo;
 import com.mycompany.fitnesstracker.Models.Enums.RegistrationType;
+import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Repositories.UserRepository;
 import com.mycompany.fitnesstracker.config.JwtService;
 import jakarta.transaction.Transactional;
@@ -116,6 +118,27 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+    }
+
+    /* ── Trainer public profile (ROLE_TRAINER only) ── */
+    @Transactional
+    public UserDTO updateTrainerProfile(UpdateTrainerProfileRequest request) {
+        User user = currentUser();
+        if (user.getRole() != Role.ROLE_TRAINER) {
+            throw new BaseException("Trainer role required", HttpStatus.FORBIDDEN);
+        }
+
+        UserInfo info = user.getUserInfo();
+        if (info == null) {
+            info = new UserInfo();
+            info.setUserIdentity(user);
+            user.setUserInfo(info);
+        }
+        info.setSpecialization(trimToNull(request.getSpecialization()));
+        info.setImageUrl(trimToNull(request.getImageUrl()));
+
+        userRepository.save(user);
+        return userMapper.toDTO(user);
     }
 
     private User currentUser() {

@@ -4,6 +4,9 @@ import com.mycompany.fitnesstracker.Mappers.UserMapper;
 import com.mycompany.fitnesstracker.Models.BaseException;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymCardDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymDetailsDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerCardDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerDetailsDTO;
+import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.Gym;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserDTO;
@@ -37,6 +40,7 @@ class DiscoverServiceTest {
     private UserRepository userRepository;
     private UserService userService;
     private UserMapper userMapper;
+    private ConnectionService connectionService;
     private DiscoverService service;
 
     @BeforeEach
@@ -46,8 +50,16 @@ class DiscoverServiceTest {
         userRepository = mock(UserRepository.class);
         userService = mock(UserService.class);
         userMapper = mock(UserMapper.class);
+        connectionService = mock(ConnectionService.class);
         service = new DiscoverService(gymRepository, gymTrainerRepository,
-                userRepository, userService, userMapper);
+                userRepository, userService, userMapper, connectionService);
+    }
+
+    private User trainer(long id, String first) {
+        User u = User.builder().id(id).email("t@test.com").role(Role.ROLE_TRAINER).build();
+        UserInfo info = UserInfo.builder().userIdentity(u).firstName(first).specialization("Strength").build();
+        u.setUserInfo(info);
+        return u;
     }
 
     private Gym gym(long id, String name, Boolean isPublic) {
@@ -126,6 +138,46 @@ class DiscoverServiceTest {
     void discoverDtos_doNotExposeOwner() {
         assertFalse(hasComponentContaining(DiscoverGymCardDTO.class, "owner"));
         assertFalse(hasComponentContaining(DiscoverGymDetailsDTO.class, "owner"));
+    }
+
+    @Test
+    void getTrainers_returnsOnlyRoleTrainer() {
+        when(userRepository.findAllByRole(Role.ROLE_TRAINER)).thenReturn(List.of(trainer(5, "Max")));
+        when(gymTrainerRepository.findFirstByTrainer(any(User.class))).thenReturn(Optional.empty());
+
+        List<DiscoverTrainerCardDTO> cards = service.getTrainers();
+
+        assertEquals(1, cards.size());
+        assertEquals("Max", cards.get(0).firstName());
+        assertEquals("Strength", cards.get(0).specialization());
+        verify(userRepository).findAllByRole(Role.ROLE_TRAINER);
+    }
+
+    @Test
+    void getTrainer_nonTrainerId_isHiddenAs404() {
+        User normal = User.builder().id(6L).email("n@test.com").role(Role.ROLE_USER).build();
+        when(userRepository.findUserById(6L)).thenReturn(Optional.of(normal));
+
+        assertThrows(BaseException.class, () -> service.getTrainer(6L));
+    }
+
+    @Test
+    void connectTrainer_delegatesToConnectionService_byId() {
+        User me = User.builder().id(1L).email("me@test.com").build();
+        when(userService.getUserByJWt()).thenReturn(me);
+
+        service.connectTrainer(5L);
+
+        verify(connectionService).requestTrainerConnection(5L, "me@test.com");
+    }
+
+    @Test
+    void discoverTrainerDtos_doNotExposeEmailOrPhone() {
+        for (Class<?> dto : List.of(DiscoverTrainerCardDTO.class, DiscoverTrainerDetailsDTO.class)) {
+            assertFalse(hasComponentContaining(dto, "email"));
+            assertFalse(hasComponentContaining(dto, "phone"));
+            assertFalse(hasComponentContaining(dto, "password"));
+        }
     }
 
     private boolean hasComponentContaining(Class<?> recordClass, String needle) {

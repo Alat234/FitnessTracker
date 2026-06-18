@@ -4,7 +4,11 @@ import com.mycompany.fitnesstracker.Mappers.UserMapper;
 import com.mycompany.fitnesstracker.Models.BaseException;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymCardDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymDetailsDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerCardDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerDetailsDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerSummaryDTO;
+import com.mycompany.fitnesstracker.Models.Discover.TrainerConnectResultDTO;
+import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.Gym;
 import com.mycompany.fitnesstracker.Models.GymEntities.GymTrainer;
 import com.mycompany.fitnesstracker.Models.User;
@@ -34,6 +38,7 @@ public class DiscoverService {
     private final UserRepository       userRepository;
     private final UserService          userService;
     private final UserMapper           userMapper;
+    private final ConnectionService    connectionService;
 
     @Transactional
     public List<DiscoverGymCardDTO> getGyms() {
@@ -66,6 +71,31 @@ public class DiscoverService {
             userRepository.save(user);
         }
         return userMapper.toDTO(user);
+    }
+
+    /* ── Trainers ── */
+
+    @Transactional
+    public List<DiscoverTrainerCardDTO> getTrainers() {
+        return userRepository.findAllByRole(Role.ROLE_TRAINER).stream()
+                .map(this::toTrainerCard)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public DiscoverTrainerDetailsDTO getTrainer(Long id) {
+        return toTrainerDetails(loadTrainer(id));
+    }
+
+    /** Send a TRAINER connection request to the trainer by id (email never exposed). */
+    @Transactional
+    public TrainerConnectResultDTO connectTrainer(Long trainerId) {
+        String ownerEmail = userService.getUserByJWt().getEmail();
+        connectionService.requestTrainerConnection(trainerId, ownerEmail);
+        return TrainerConnectResultDTO.builder()
+                .status("PENDING")
+                .message("Connection request sent.")
+                .build();
     }
 
     /* ── helpers ── */
@@ -127,5 +157,46 @@ public class DiscoverService {
                 .firstName(ui != null ? ui.getFirstName() : null)
                 .lastName(ui != null ? ui.getLastName() : null)
                 .build();
+    }
+
+    private User loadTrainer(Long id) {
+        User user = userRepository.findUserById(id)
+                .orElseThrow(() -> new BaseException("Trainer not found", HttpStatus.NOT_FOUND));
+        if (user.getRole() != Role.ROLE_TRAINER) {
+            throw new BaseException("Trainer not found", HttpStatus.NOT_FOUND);
+        }
+        return user;
+    }
+
+    private DiscoverTrainerCardDTO toTrainerCard(User trainer) {
+        UserInfo ui = trainer.getUserInfo();
+        return DiscoverTrainerCardDTO.builder()
+                .id(trainer.getId())
+                .firstName(ui != null ? ui.getFirstName() : null)
+                .lastName(ui != null ? ui.getLastName() : null)
+                .specialization(ui != null ? ui.getSpecialization() : null)
+                .imageUrl(ui != null ? ui.getImageUrl() : null)
+                .gymName(trainerGymName(trainer))
+                .build();
+    }
+
+    private DiscoverTrainerDetailsDTO toTrainerDetails(User trainer) {
+        UserInfo ui = trainer.getUserInfo();
+        return DiscoverTrainerDetailsDTO.builder()
+                .id(trainer.getId())
+                .firstName(ui != null ? ui.getFirstName() : null)
+                .lastName(ui != null ? ui.getLastName() : null)
+                .bio(ui != null ? ui.getBio() : null)
+                .specialization(ui != null ? ui.getSpecialization() : null)
+                .imageUrl(ui != null ? ui.getImageUrl() : null)
+                .gymName(trainerGymName(trainer))
+                .build();
+    }
+
+    private String trainerGymName(User trainer) {
+        return gymTrainerRepository.findFirstByTrainer(trainer)
+                .map(GymTrainer::getGym)
+                .map(Gym::getName)
+                .orElse(null);
     }
 }

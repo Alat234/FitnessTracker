@@ -55,22 +55,47 @@ public class ConnectionService {
         User viewer = userRepository.findUserByEmailIs(targetEmail)
                 .orElseThrow(() -> new BaseException("User not found", HttpStatus.NOT_FOUND));
 
+        return inviteViewer(owner, viewer, request.getType());
+    }
+
+    /**
+     * Надіслати TRAINER-запрошення тренеру за його id (для Discover).
+     * Email тренера не потрібен і не розкривається фронтенду.
+     */
+    @Transactional
+    public ConnectionDTO requestTrainerConnection(Long trainerId, String ownerEmail) {
+        if (trainerId == null) {
+            throw new BaseException("Trainer id is required", HttpStatus.BAD_REQUEST);
+        }
+        User owner = userService.getValidatedUserForAction(ownerEmail);
+        User trainer = userRepository.findUserById(trainerId)
+                .orElseThrow(() -> new BaseException("Trainer not found", HttpStatus.NOT_FOUND));
+        if (trainer.getRole() != Role.ROLE_TRAINER) {
+            throw new BaseException("Target user is not a trainer", HttpStatus.BAD_REQUEST);
+        }
+        return inviteViewer(owner, trainer, ConnectionType.TRAINER);
+    }
+
+    /** Спільне ядро створення/відродження запрошення owner → viewer. */
+    private ConnectionDTO inviteViewer(User owner, User viewer, ConnectionType type) {
         if (viewer.getId().equals(owner.getId())) {
             throw new BaseException("Cannot invite yourself", HttpStatus.BAD_REQUEST);
         }
-        if (request.getType() == ConnectionType.TRAINER && viewer.getRole() != Role.ROLE_TRAINER) {
+        if (type == ConnectionType.TRAINER && viewer.getRole() != Role.ROLE_TRAINER) {
             throw new BaseException("Target user is not a trainer", HttpStatus.BAD_REQUEST);
         }
 
         Optional<UserConnection> existing =
-                connectionRepository.findByOwnerAndViewerAndType(owner, viewer, request.getType());
+                connectionRepository.findByOwnerAndViewerAndType(owner, viewer, type);
 
         UserConnection connection;
         if (existing.isPresent()) {
             connection = existing.get();
-            if (connection.getStatus() == ConnectionStatus.PENDING
-                    || connection.getStatus() == ConnectionStatus.ACCEPTED) {
-                throw new BaseException("Invite already exists", HttpStatus.CONFLICT);
+            if (connection.getStatus() == ConnectionStatus.PENDING) {
+                throw new BaseException("Request already sent", HttpStatus.CONFLICT);
+            }
+            if (connection.getStatus() == ConnectionStatus.ACCEPTED) {
+                throw new BaseException("Already connected", HttpStatus.CONFLICT);
             }
             /* DECLINED / REVOKED — повторне запрошення: той самий рядок назад у PENDING */
             connection.setStatus(ConnectionStatus.PENDING);
@@ -79,11 +104,11 @@ public class ConnectionService {
             connection = UserConnection.builder()
                     .owner(owner)
                     .viewer(viewer)
-                    .type(request.getType())
+                    .type(type)
                     .status(ConnectionStatus.PENDING)
                     .build();
         }
-        applyDefaultPermissions(connection, request.getType());
+        applyDefaultPermissions(connection, type);
 
         return connectionMapper.toDTO(connectionRepository.save(connection));
     }

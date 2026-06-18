@@ -2,6 +2,23 @@
 
 Remaining work to make the practical part demonstrable. Ordered roughly by demo impact.
 
+## Done — Feature Phases 6A–6E (2026-06-18, branch `dev`)
+- [x] **6A** — body metrics on `UserInfo` (height/weight/DOB/sex/activity/goal) + enums; `CalorieCalculatorService` (Mifflin-St Jeor); `GET /api/nutrition/calculator`; `PUT /api/user/me/body-metrics`. Apply reuses `PUT /api/nutrition/goals`.
+- [x] **6B** — `PUT /api/user/me` (personal data), `POST /api/user/me/password` (BCrypt verify+re-encode, non-LOCAL/blank rejected, never returns password).
+- [x] **6C** — `Gym` +imageUrl/isPublic; `UserInfo.gym` ManyToOne; `SelectedGymDTO` in `UserDTO`; new `DiscoverController`/`DiscoverService` (`/api/discover/gyms*`, select/leave); `GymRepository.findPublicGyms`. GymOwner CRUD extended with imageUrl/isPublic.
+- [x] **6D** — `/api/discover/trainers*`; connect by trainer id via `ConnectionService.requestTrainerConnection`; whitelist Discover trainer DTOs (no email/phone); `UserRepository.findAllByRole`, `GymTrainerRepository.findFirstByTrainer`.
+- [x] **6E** — `PUT /api/user/me/trainer-profile` (ROLE_TRAINER only) editing specialization+imageUrl; `UserInfoDTO` exposes them.
+- [x] **Tests** (Mockito service units): CalorieCalculator 9, UserService 11, DiscoverService 10, ConnectionService 24 (+ existing GymService 26, TrainerService 8, ShareService 7) — all green via the **direct-`java` runner** (Gradle `test` worker broken on Cyrillic path; see `PROJECT_STATE.md`).
+
+> Previously-listed gaps now CLOSED: profile read/update endpoints, password change, Gym endpoints, body metrics on UserInfo, nutrition goals/summary wired on FE. Still open below.
+
+## Remaining (backend)
+- [ ] **Body-metrics time series** — current metrics are single-value on `UserInfo`; a history entity (+charts) and wiring into `SharedProgressDTO.bodyMetrics` (still reserved null) remain.
+- [ ] Articles/Posts, trainer reviews/results — not started (Discover Articles is FE placeholder only).
+- [ ] Image upload pipeline — out of scope (imageUrl strings only).
+- [ ] Public/unauthenticated Discover — intentionally not implemented (locked: auth-only).
+- [ ] Seed demo data: a `ROLE_TRAINER` with specialization/imageUrl, public gyms with images, for screenshots.
+
 ## Done (invite-based progress sharing, 2026-06-12)
 - [x] **Phase 1 — UserConnection invite lifecycle**: `UserConnection` entity + enums, `/api/connections` endpoints (invite by email, outgoing/incoming lists, accept/decline/revoke), per-row permission flags, re-invite reuses DECLINED/REVOKED rows.
 - [x] **Phase 2 — shared progress endpoint**: `GET /api/share/{ownerId}/progress` (`SharedProgressDTO`), gated by ACCEPTED connections, flags OR-merged, `bodyMetrics` reserved null.

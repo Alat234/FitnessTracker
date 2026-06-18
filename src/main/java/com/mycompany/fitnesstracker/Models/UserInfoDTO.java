@@ -17,6 +17,8 @@ public record UserInfoDTO(
         @JsonFormat(pattern = "yyyy-MM-dd") LocalDate dateOfBirth,
         Sex sex,
         ActivityLevel activityLevel,
-        FitnessGoal fitnessGoal
+        FitnessGoal fitnessGoal,
+        String specialization,
+        String imageUrl
 ) {
 }
