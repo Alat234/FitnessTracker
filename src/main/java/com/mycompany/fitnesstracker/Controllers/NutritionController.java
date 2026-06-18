@@ -1,5 +1,6 @@
 package com.mycompany.fitnesstracker.Controllers;
 
+import com.mycompany.fitnesstracker.Models.Nutrition.CalorieEstimateDTO;
 import com.mycompany.fitnesstracker.Models.Nutrition.DailyNutritionSummaryDTO;
 import com.mycompany.fitnesstracker.Models.Nutrition.NutritionGoalDTO;
 import com.mycompany.fitnesstracker.Models.Nutrition.NutritionLogDTO;
@@ -71,6 +72,15 @@ public class NutritionController {
     public ResponseEntity<NutritionGoalDTO> updateGoals(@RequestBody NutritionGoalDTO dto) {
         String email = currentUserEmail();
         return ResponseEntity.ok(nutritionService.updateGoals(dto, email));
+    }
+
+    /* ── Calorie calculator ───────────────────────────────── */
+
+    /** BMR/TDEE estimate + maintain/lose/gain suggestions from stored body metrics. */
+    @GetMapping("/calculator")
+    public ResponseEntity<CalorieEstimateDTO> getCalorieEstimate() {
+        String email = currentUserEmail();
+        return ResponseEntity.ok(nutritionService.getCalorieEstimate(email));
     }
 
     /* ── helpers ──────────────────────────────────────────── */

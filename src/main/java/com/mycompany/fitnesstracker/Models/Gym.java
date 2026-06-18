@@ -33,6 +33,12 @@ public class Gym {
     private  String phoneNumber;
     @Column(name="gym_email")
     private String email;
+    @Column(name="gym_image_url")
+    private String imageUrl;
+    /* Visibility in the Discover directory. Nullable so ddl-auto=update can add the
+       column to existing rows; null is treated as public. Defaulted in @PrePersist. */
+    @Column(name="gym_is_public")
+    private Boolean isPublic;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="gym_owner_id")
@@ -46,6 +52,7 @@ public class Gym {
     @PrePersist
     public void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
+        if (isPublic == null) isPublic = true;
     }
 
 }

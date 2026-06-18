@@ -21,4 +21,6 @@ public class GymRequest {
     private String city;
     private String phoneNumber;
     private String email;
+    private String imageUrl;
+    private Boolean isPublic;
 }

@@ -4,6 +4,6 @@ import com.mycompany.fitnesstracker.Models.Enums.Role;
 import lombok.Builder;
 
 @Builder
-public record UserDTO(String email,String firstName, Role role, UserInfoDTO userInfoDTO) {
+public record UserDTO(String email,String firstName, Role role, UserInfoDTO userInfoDTO, SelectedGymDTO selectedGym) {
 
 }

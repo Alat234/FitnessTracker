@@ -1,5 +1,7 @@
 package com.mycompany.fitnesstracker.Mappers;
 
+import com.mycompany.fitnesstracker.Models.Gym;
+import com.mycompany.fitnesstracker.Models.SelectedGymDTO;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserDTO;
 import com.mycompany.fitnesstracker.Models.UserInfo;
@@ -12,12 +14,30 @@ public class UserMapper {
         if (user == null){return null;}
         UserInfoDTO infoDTO = null;
         if (user.getUserInfo() != null) {
+            UserInfo source = user.getUserInfo();
             infoDTO = new UserInfoDTO(
-                    user.getUserInfo().getFirstName(),
-                    user.getUserInfo().getLastName(),
-                    user.getUserInfo().getBio(),
-                    user.getUserInfo().getPhoneNumber()
+                    source.getFirstName(),
+                    source.getLastName(),
+                    source.getBio(),
+                    source.getPhoneNumber(),
+                    source.getHeightCm(),
+                    source.getWeightKg(),
+                    source.getDateOfBirth(),
+                    source.getSex(),
+                    source.getActivityLevel(),
+                    source.getFitnessGoal()
             );
+        }
+
+        SelectedGymDTO selectedGym = null;
+        if (user.getUserInfo() != null && user.getUserInfo().getGym() != null) {
+            Gym gym = user.getUserInfo().getGym();
+            selectedGym = SelectedGymDTO.builder()
+                    .id(gym.getId())
+                    .name(gym.getName())
+                    .city(gym.getCity())
+                    .imageUrl(gym.getImageUrl())
+                    .build();
         }
 
         // Повертаємо основний record DTO
@@ -25,7 +45,8 @@ public class UserMapper {
                 user.getEmail(),
                 user.getUserInfo() != null ? user.getUserInfo().getFirstName() : null,
                 user.getRole(),
-                infoDTO
+                infoDTO,
+                selectedGym
         );
 
     }

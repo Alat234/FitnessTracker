@@ -21,10 +21,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NutritionService {
 
-    private final NutritionLogRepository  logRepository;
-    private final NutritionGoalRepository goalRepository;
-    private final UserService             userService;
-    private final NutritionMapper         nutritionMapper;
+    private final NutritionLogRepository    logRepository;
+    private final NutritionGoalRepository   goalRepository;
+    private final UserService               userService;
+    private final NutritionMapper           nutritionMapper;
+    private final CalorieCalculatorService  calorieCalculatorService;
 
     /* ═══════════════════════════════════════════════
        MEAL LOGS
@@ -122,6 +123,16 @@ public class NutritionService {
 
         nutritionMapper.updateGoalFromDTO(dto, goal);
         return nutritionMapper.toDTO(goalRepository.save(goal));
+    }
+
+    /* ═══════════════════════════════════════════════
+       CALORIE CALCULATOR
+    ═══════════════════════════════════════════════ */
+
+    @Transactional
+    public CalorieEstimateDTO getCalorieEstimate(String email) {
+        User user = userService.getValidatedUserForAction(email);
+        return calorieCalculatorService.calculate(user.getUserInfo());
     }
 
     /* Lazily create defaults for users that haven't set goals yet */

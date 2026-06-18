@@ -15,4 +15,6 @@ public interface GymTrainerRepository extends JpaRepository<GymTrainer, Long> {
     Optional<GymTrainer> findByGymAndTrainer(Gym gym, User trainer);
 
     boolean existsByGymAndTrainer(Gym gym, User trainer);
+
+    long countByGym(Gym gym);
 }

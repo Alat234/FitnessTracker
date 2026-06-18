@@ -175,5 +175,11 @@ public class GymService {
         gym.setCity(request.getCity());
         gym.setPhoneNumber(request.getPhoneNumber());
         gym.setEmail(request.getEmail());
+        gym.setImageUrl(request.getImageUrl());
+        // Preserve existing visibility when the request omits it (null).
+        // On create the entity's @PrePersist defaults a still-null value to true.
+        if (request.getIsPublic() != null) {
+            gym.setIsPublic(request.getIsPublic());
+        }
     }
 }

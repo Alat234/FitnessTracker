@@ -34,6 +34,8 @@ public class GymMapper {
                 .city(gym.getCity())
                 .phoneNumber(gym.getPhoneNumber())
                 .email(gym.getEmail())
+                .imageUrl(gym.getImageUrl())
+                .isPublic(gym.getIsPublic())
                 .owner(connectionMapper.toUserDTO(gym.getGymOwner()))
                 .trainers(trainerDTOs)
                 .createdAt(gym.getCreatedAt())

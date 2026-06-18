@@ -1,5 +1,6 @@
 package com.mycompany.fitnesstracker.Services;
 
+import com.mycompany.fitnesstracker.Mappers.UserMapper;
 import com.mycompany.fitnesstracker.Models.*;
 import com.mycompany.fitnesstracker.Models.Enums.RegistrationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
@@ -23,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
 
     public DataWithCookie<UserDTO> register(RegisterRequest registerRequest) {
 
@@ -72,19 +74,8 @@ public class AuthService {
                 path("/").
                 maxAge(365 * 24 * 60 * 60).
                 build();
-        var userInfo = user.getUserInfo();
-        var userInfoDTO = new UserInfoDTO(
-                userInfo.getFirstName(),
-                userInfo.getLastName(),
-                userInfo.getBio(),
-                userInfo.getPhoneNumber()
-        );
-        var response=  UserDTO.builder()
-                .email(user.getEmail())
-                .firstName(user.getUserInfo().getFirstName())
-                .role(user.getRole())
-                .userInfoDTO(userInfoDTO)
-                .build();
+        // Single source of truth for the user payload (includes selectedGym, never password).
+        UserDTO response = userMapper.toDTO(user);
         return new DataWithCookie<>(response,cookie);
 
 
