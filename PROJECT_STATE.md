@@ -1,6 +1,27 @@
 # PROJECT_STATE.md — FitnessTracker (backend)
 
-Last updated: **2026-06-18**, branch `dev`. **Feature Phases 6A–6E complete and verified.**
+Last updated: **2026-06-18**, branch `dev`. **Feature Phases 6A–6F + 7B complete and verified.**
+
+**Phase 7B (Trainer-client scheduled workouts):** `TrainingAppointment` entity
+(`training_appointments`) + `AppointmentStatus {SCHEDULED, COMPLETED, CANCELLED}`;
+`AppointmentRepository` (`findAllByTrainerOrderByStartAtAsc`, `findAllByClientOrderByStartAtAsc`);
+`AppointmentService` (create/listMy/update/cancel; ROLE_TRAINER-only writes via service-layer check —
+ADMIN/GYM_OWNER do NOT bypass; accepted TRAINER connection owner=client/viewer=trainer; title+startAt
+required, endAt-after-startAt validation; **DELETE = soft cancel** status→CANCELLED); `AppointmentController`
+(`GET /api/appointments/my` role-aware, `POST /api/trainer/clients/{clientId}/appointments`,
+`PUT|DELETE /api/trainer/appointments/{id}`). DTOs `AppointmentDTO`, `AppointmentPartyDTO`,
+`Create/UpdateAppointmentRequest`. `AppointmentServiceTest` 10 green (direct-`java`). Mini-fix: exercise
+write ops now ROLE_ADMIN-gated in `ExerciseService.requireAdmin()` (`ExerciseServiceTest` 7 green).
+
+**Phase 6F (Articles / Tips MVP):** `Article` entity (`articles` table) + `ArticleCategory`
+enum (`@Enumerated(STRING)`); `ArticleRepository` (`findAllByPublishedTrueOrderByCreatedAtDesc`,
+`findByIdAndPublishedTrue`, `findAllByOrderByCreatedAtDesc`); `ArticleService` (published read +
+admin CRUD, `requireAdmin()` service-layer 403 — no `@PreAuthorize`); read endpoints
+`GET /api/discover/articles[/{id}]` on `DiscoverController`; new `AdminArticleController`
+`/api/admin/articles` (GET/POST/PUT/DELETE). DTOs `DiscoverArticle{Card,Details}DTO`,
+`ArticleAdminRequest`, `ArticleAdminDTO`. `ArticleServiceTest` 10 tests green (direct-`java` runner).
+Note: existing `ExerciseController` `@PreAuthorize` is inert (no `@EnableMethodSecurity` in project) —
+left as-is; Article admin gating uses the service-layer pattern instead.
 (The "## Implemented / Entities / Not implemented" sections below predate Phase 6 — kept as
 history; this top block is authoritative.)
 

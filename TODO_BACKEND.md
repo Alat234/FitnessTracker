@@ -9,12 +9,15 @@ Remaining work to make the practical part demonstrable. Ordered roughly by demo 
 - [x] **6D** — `/api/discover/trainers*`; connect by trainer id via `ConnectionService.requestTrainerConnection`; whitelist Discover trainer DTOs (no email/phone); `UserRepository.findAllByRole`, `GymTrainerRepository.findFirstByTrainer`.
 - [x] **6E** — `PUT /api/user/me/trainer-profile` (ROLE_TRAINER only) editing specialization+imageUrl; `UserInfoDTO` exposes them.
 - [x] **Tests** (Mockito service units): CalorieCalculator 9, UserService 11, DiscoverService 10, ConnectionService 24 (+ existing GymService 26, TrainerService 8, ShareService 7) — all green via the **direct-`java` runner** (Gradle `test` worker broken on Cyrillic path; see `PROJECT_STATE.md`).
+- [x] **6F** — Articles / Tips MVP: `Article` entity + `ArticleCategory` enum, `ArticleRepository`, `ArticleService` (published read + admin CRUD, service-layer `requireAdmin` 403), `GET /api/discover/articles[/{id}]`, new `AdminArticleController` `/api/admin/articles` CRUD, Discover/admin DTOs. `ArticleServiceTest` 10 green (direct-`java`). `imageUrl` strings only; no comments/likes/feed.
 
 > Previously-listed gaps now CLOSED: profile read/update endpoints, password change, Gym endpoints, body metrics on UserInfo, nutrition goals/summary wired on FE. Still open below.
 
 ## Remaining (backend)
 - [ ] **Body-metrics time series** — current metrics are single-value on `UserInfo`; a history entity (+charts) and wiring into `SharedProgressDTO.bodyMetrics` (still reserved null) remain.
-- [ ] Articles/Posts, trainer reviews/results — not started (Discover Articles is FE placeholder only).
+- [x] Articles/Tips — done (Phase 6F). Remaining out of scope: comments/likes/feed, trainer reviews/results.
+- [x] **7B** — Trainer-client scheduled workouts: `TrainingAppointment` + `AppointmentStatus`, `AppointmentRepository`, `AppointmentService` (ROLE_TRAINER-only writes, accepted-connection check, validation, soft-cancel), `AppointmentController` (`/api/appointments/my`, `/api/trainer/clients/{id}/appointments`, `/api/trainer/appointments/{id}`). `AppointmentServiceTest` 10 green. No recurring/notifications/WebSocket.
+- [x] **Mini-fix** — exercise write ops truly ROLE_ADMIN-only via `ExerciseService.requireAdmin()` (service-layer; `@PreAuthorize` was inert without method security). `ExerciseServiceTest` 7 green.
 - [ ] Image upload pipeline — out of scope (imageUrl strings only).
 - [ ] Public/unauthenticated Discover — intentionally not implemented (locked: auth-only).
 - [ ] Seed demo data: a `ROLE_TRAINER` with specialization/imageUrl, public gyms with images, for screenshots.

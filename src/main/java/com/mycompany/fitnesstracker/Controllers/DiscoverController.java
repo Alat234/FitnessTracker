@@ -1,11 +1,14 @@
 package com.mycompany.fitnesstracker.Controllers;
 
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverArticleCardDTO;
+import com.mycompany.fitnesstracker.Models.Discover.DiscoverArticleDetailsDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymCardDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverGymDetailsDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerCardDTO;
 import com.mycompany.fitnesstracker.Models.Discover.DiscoverTrainerDetailsDTO;
 import com.mycompany.fitnesstracker.Models.Discover.TrainerConnectResultDTO;
 import com.mycompany.fitnesstracker.Models.UserDTO;
+import com.mycompany.fitnesstracker.Services.ArticleService;
 import com.mycompany.fitnesstracker.Services.DiscoverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +31,7 @@ import java.util.List;
 public class DiscoverController {
 
     private final DiscoverService discoverService;
+    private final ArticleService articleService;
 
     @GetMapping("/gyms")
     public ResponseEntity<List<DiscoverGymCardDTO>> getGyms() {
@@ -64,5 +68,17 @@ public class DiscoverController {
     @PostMapping("/trainers/{id}/connect")
     public ResponseEntity<TrainerConnectResultDTO> connectTrainer(@PathVariable Long id) {
         return ResponseEntity.ok(discoverService.connectTrainer(id));
+    }
+
+    /* ── Articles / Tips ── */
+
+    @GetMapping("/articles")
+    public ResponseEntity<List<DiscoverArticleCardDTO>> getArticles() {
+        return ResponseEntity.ok(articleService.getPublishedArticles());
+    }
+
+    @GetMapping("/articles/{id}")
+    public ResponseEntity<DiscoverArticleDetailsDTO> getArticle(@PathVariable Long id) {
+        return ResponseEntity.ok(articleService.getPublishedArticle(id));
     }
 }

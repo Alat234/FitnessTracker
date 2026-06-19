@@ -2,6 +2,8 @@ package com.mycompany.fitnesstracker.Services;
 
 import com.mycompany.fitnesstracker.Mappers.ExerciseMapper;
 import com.mycompany.fitnesstracker.Models.BaseException;
+import com.mycompany.fitnesstracker.Models.Enums.Role;
+import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.Exercise;
 import com.mycompany.fitnesstracker.Models.WorkoutEntities.ExerciseDTO;
 import com.mycompany.fitnesstracker.Repositories.ExerciseRepository;
@@ -22,8 +24,22 @@ public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
     private final ExerciseMapper exerciseMapper;
     private final FileStorageService fileStorageService;
+    private final UserService userService;
+
+    /**
+     * Admin gate for write operations. Called BEFORE broad try/catch blocks so a
+     * FORBIDDEN is not swallowed and converted into a 500. Service-layer check
+     * because the project does not enable method security (mirrors ArticleService).
+     */
+    private void requireAdmin() {
+        User user = userService.getUserByJWt();
+        if (user.getRole() != Role.ROLE_ADMIN) {
+            throw new BaseException("Admin access required", HttpStatus.FORBIDDEN);
+        }
+    }
 
     public ExerciseDTO createExercise(ExerciseDTO exerciseDTO, MultipartFile file) {
+        requireAdmin();
         try {
             String imageUrl = null;
 
@@ -65,6 +81,7 @@ public class ExerciseService {
     }
 
     public void deleteExerciseById(Long exerciseId) {
+        requireAdmin();
         try {
             log.info("Delete exercise with id: {}", exerciseId);
             exerciseRepository.deleteById(exerciseId);
@@ -75,6 +92,7 @@ public class ExerciseService {
     }
 
     public ExerciseDTO updateExercise(ExerciseDTO exerciseDTO, MultipartFile file) {
+        requireAdmin();
         Exercise oldExercise = exerciseRepository.findById(exerciseDTO.getId())
                 .orElseThrow(() -> new BaseException("Exercise not found", HttpStatus.NOT_FOUND));
 

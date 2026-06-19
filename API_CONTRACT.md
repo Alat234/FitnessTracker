@@ -136,6 +136,8 @@ DTO shapes:
 | GET | `/api/discover/trainers` | — | List\<DiscoverTrainerCardDTO\> (ROLE_TRAINER users) | authenticated | ✓ |
 | GET | `/api/discover/trainers/{id}` | path id | DiscoverTrainerDetailsDTO (404 if not trainer) | authenticated | ✓ |
 | POST | `/api/discover/trainers/{id}/connect` | path id | TrainerConnectResultDTO `{status, message}` | authenticated | ✓ |
+| GET | `/api/discover/articles` | — | List\<DiscoverArticleCardDTO\> (published only, newest first) | authenticated | ✓ `discoverApi.getArticles` |
+| GET | `/api/discover/articles/{id}` | path id | DiscoverArticleDetailsDTO (404 if missing/unpublished) | authenticated | ✓ `discoverApi.getArticle` |
 
 - **Whitelist DTOs — no owner/trainer email, phone, password, auth provider, or client/private data.**
   `DiscoverGymCardDTO {id, name, city, address, imageUrl, trainerCount}`;
@@ -144,11 +146,41 @@ DTO shapes:
   `DiscoverTrainerDetailsDTO {id, firstName, lastName, bio, specialization, imageUrl, gymName}`.
 - Connect: creates a TRAINER `UserConnection` (owner = caller, viewer = trainer-by-id). 400 self/non-trainer, 404 missing, 409 `"Request already sent"`/`"Already connected"`. Private gym (`isPublic=false`) hidden as 404; null isPublic = public.
 
+### Articles / Tips — `DiscoverController` (read) + `AdminArticleController` (admin), Phase 6F
+| Method | Path | Request | Response | Access | FE |
+|---|---|---|---|---|---|
+| GET | `/api/admin/articles` | — | List\<ArticleAdminDTO\> (all, newest first) | authenticated + **ROLE_ADMIN** (403 else) | ✓ `articleApi.getAdminArticles` |
+| POST | `/api/admin/articles` | ArticleAdminRequest | ArticleAdminDTO (201) | ROLE_ADMIN | ✓ `articleApi.createArticle` |
+| PUT | `/api/admin/articles/{id}` | ArticleAdminRequest | ArticleAdminDTO (404 if missing) | ROLE_ADMIN | ✓ `articleApi.updateArticle` |
+| DELETE | `/api/admin/articles/{id}` | — | 204 (404 if missing) | ROLE_ADMIN | ✓ `articleApi.deleteArticle` |
+
+- Read DTOs (whitelist, safe fields only):
+  `DiscoverArticleCardDTO {id, title, summary, category, imageUrl, createdAt}`;
+  `DiscoverArticleDetailsDTO {id, title, summary, content, category, imageUrl, createdAt, updatedAt}`.
+- Admin DTO/request: `ArticleAdminDTO {id, title, summary, content, category, imageUrl, published, createdAt, updatedAt}`;
+  `ArticleAdminRequest {title, summary, content, category, imageUrl, published}`.
+- `category` enum `ArticleCategory {TRAINING, NUTRITION, RECOVERY, PLATFORM, GENERAL}` (`@Enumerated(STRING)`; null → GENERAL on persist). `published` null → false on persist; only published articles appear in Discover.
+- **ROLE_ADMIN enforced in `ArticleService` (service-layer check, 403), NOT `@PreAuthorize`** — this project does not enable method security (mirrors GymService/DiscoverService). Image is `imageUrl` string only (no upload). Routing by article id (no slug).
+
+### Appointments — `AppointmentController` (Phase 7B, scheduled workouts)
+| Method | Path | Request | Response | Access |
+|---|---|---|---|---|
+| GET | `/api/appointments/my` | — | List\<AppointmentDTO\> | authenticated; role-aware (ROLE_TRAINER → trainer-side, else client-side) |
+| POST | `/api/trainer/clients/{clientId}/appointments` | CreateAppointmentRequest | AppointmentDTO (201) | **ROLE_TRAINER** + ACCEPTED TRAINER connection to client |
+| PUT | `/api/trainer/appointments/{appointmentId}` | UpdateAppointmentRequest | AppointmentDTO | owning trainer only |
+| DELETE | `/api/trainer/appointments/{appointmentId}` | — | 204 (**soft cancel**, status→CANCELLED, record preserved) | owning trainer only |
+
+- `AppointmentDTO {id, title, startAt, endAt, notes, status, trainer:AppointmentPartyDTO, client:AppointmentPartyDTO, createdAt, updatedAt}`; `AppointmentPartyDTO {id, firstName, lastName, email}`.
+- `CreateAppointmentRequest {title, startAt, endAt?, notes?}`; `UpdateAppointmentRequest {title?, startAt?, endAt?, notes?, status?}`. Times ISO `yyyy-MM-dd'T'HH:mm:ss` LocalDateTime.
+- `status` enum `AppointmentStatus {SCHEDULED, COMPLETED, CANCELLED}` (`@Enumerated(STRING)`, null→SCHEDULED on persist).
+- Validation (service-layer): create requires non-blank title + startAt; if endAt present it must be after startAt; update re-validates effective start/end.
+- **ROLE_TRAINER-only writes enforced in `AppointmentService`** (no `@PreAuthorize`; ADMIN/GYM_OWNER do NOT bypass). Connection check: accepted TRAINER `UserConnection` (owner=client, viewer=trainer). Scheduling only — never creates workout logs.
+
 ## Not implemented (frontend must not call yet)
 
 - Admin user management — not implemented (FE AdminUsersPage is a placeholder).
 - Connection permission editing (`PATCH /api/connections/{id}/permissions`) — not implemented.
-- Articles/Posts, trainer reviews/results photos — not implemented (Discover Articles is a FE placeholder).
+- Article comments/likes/feed, trainer reviews/results photos — not implemented (Articles MVP is read + admin CRUD only).
 - Public/unauthenticated Discover — intentionally not implemented (locked: auth-only).
 - Image **upload** — only legacy exercise images; gym/trainer use `imageUrl` strings.
 - Body-metrics **history/time-series** — metrics are single-value on `UserInfo`; `SharedProgressDTO.bodyMetrics` still reserved null.
