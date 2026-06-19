@@ -1,6 +1,18 @@
 # PROJECT_STATE.md — FitnessTracker (backend)
 
-Last updated: **2026-06-18**, branch `dev`. **Feature Phases 6A–6F + 7B complete and verified.**
+Last updated: **2026-06-18**, branch `dev`. **Feature Phases 6A–6F + 7B + 7C complete and verified.**
+
+**Phase 7C (Trainer-client chat MVP, no real-time):** `ChatMessage` entity (`chat_messages`:
+trainer/client/sender + text≤1000 + createdAt; no read/delete flags); `ChatMessageRepository`
+(`findAllByTrainerAndClientOrderByCreatedAtAsc`); `UserConnectionRepository` +`findAllByOwnerAndTypeAndStatus`
+(client's trainers); `ChatService` (partners/getMessages/send; **strict roles** — ROLE_TRAINER=trainer,
+ROLE_USER=client, others 403 no bypass; accepted TRAINER pair owner=client/viewer=trainer enforced on
+read+send; trim+non-blank+≤1000 validation; `fromMe` computed server-side); `ChatController`
+(`/api/chat/partners`, `/api/chat/{partnerId}/messages` GET+POST). DTOs `ChatMessageDTO`, `ChatPartnerDTO`,
+`SendMessageRequest`. **Admin-support mini-fix:** `ChatMessage` now uses a canonical
+`userLow`/`userHigh` pair (replaced trainer/client cols); allowed pair = accepted TRAINER
+connection OR exactly one side ROLE_ADMIN; partners include admins (for USER/TRAINER) and
+support-thread users (for ADMIN); `ChatPartnerDTO` +`support`. `ChatServiceTest` 13 green (direct-`java`).
 
 **Phase 7B (Trainer-client scheduled workouts):** `TrainingAppointment` entity
 (`training_appointments`) + `AppointmentStatus {SCHEDULED, COMPLETED, CANCELLED}`;

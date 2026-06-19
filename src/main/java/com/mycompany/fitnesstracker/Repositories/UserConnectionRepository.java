@@ -24,6 +24,9 @@ public interface UserConnectionRepository extends JpaRepository<UserConnection, 
     /* Клієнти тренера: ACCEPTED TRAINER-зв'язки, де viewer = тренер */
     List<UserConnection> findAllByViewerAndTypeAndStatus(User viewer, ConnectionType type, ConnectionStatus status);
 
+    /* Тренери клієнта: ACCEPTED TRAINER-зв'язки, де owner = клієнт */
+    List<UserConnection> findAllByOwnerAndTypeAndStatus(User owner, ConnectionType type, ConnectionStatus status);
+
     /* Перевірка прийнятого доступу viewer-а до даних власника (для share-ендпоінтів наступної фази) */
     List<UserConnection> findAllByOwnerIdAndViewerAndStatus(Long ownerId, User viewer, ConnectionStatus status);
 }

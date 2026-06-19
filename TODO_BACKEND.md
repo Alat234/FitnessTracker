@@ -18,6 +18,8 @@ Remaining work to make the practical part demonstrable. Ordered roughly by demo 
 - [x] Articles/Tips — done (Phase 6F). Remaining out of scope: comments/likes/feed, trainer reviews/results.
 - [x] **7B** — Trainer-client scheduled workouts: `TrainingAppointment` + `AppointmentStatus`, `AppointmentRepository`, `AppointmentService` (ROLE_TRAINER-only writes, accepted-connection check, validation, soft-cancel), `AppointmentController` (`/api/appointments/my`, `/api/trainer/clients/{id}/appointments`, `/api/trainer/appointments/{id}`). `AppointmentServiceTest` 10 green. No recurring/notifications/WebSocket.
 - [x] **Mini-fix** — exercise write ops truly ROLE_ADMIN-only via `ExerciseService.requireAdmin()` (service-layer; `@PreAuthorize` was inert without method security). `ExerciseServiceTest` 7 green.
+- [x] **7C** — Trainer-client chat MVP: `ChatMessage` + `ChatMessageRepository`, `ChatService`, `ChatController` (`/api/chat/partners`, `/api/chat/{partnerId}/messages`). `UserConnectionRepository` +`findAllByOwnerAndTypeAndStatus`. No WebSocket/notifications/attachments.
+- [x] **7C admin-support mini-fix** — `ChatMessage` now uses canonical `userLow`/`userHigh` pair (replaced trainer/client cols). Allowed pair = accepted TRAINER connection OR exactly one side ROLE_ADMIN. Partners: USER/TRAINER also see admins; ADMIN sees users with existing support threads. `ChatPartnerDTO` +`support`. `ChatServiceTest` 13 green (direct-`java`). Admin never bypasses private trainer-client chats.
 - [ ] Image upload pipeline — out of scope (imageUrl strings only).
 - [ ] Public/unauthenticated Discover — intentionally not implemented (locked: auth-only).
 - [ ] Seed demo data: a `ROLE_TRAINER` with specialization/imageUrl, public gyms with images, for screenshots.

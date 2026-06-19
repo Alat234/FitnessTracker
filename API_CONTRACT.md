@@ -176,6 +176,18 @@ DTO shapes:
 - Validation (service-layer): create requires non-blank title + startAt; if endAt present it must be after startAt; update re-validates effective start/end.
 - **ROLE_TRAINER-only writes enforced in `AppointmentService`** (no `@PreAuthorize`; ADMIN/GYM_OWNER do NOT bypass). Connection check: accepted TRAINER `UserConnection` (owner=client, viewer=trainer). Scheduling only — never creates workout logs.
 
+### Chat — `ChatController` (Phase 7C + admin-support, text chat, no real-time)
+| Method | Path | Request | Response | Access |
+|---|---|---|---|---|
+| GET | `/api/chat/partners` | — | List\<ChatPartnerDTO\> | authenticated; ROLE_TRAINER → accepted clients + admins, ROLE_USER → accepted trainers + admins, ROLE_ADMIN → users with existing support threads, else 403 |
+| GET | `/api/chat/{partnerId}/messages` | — | List\<ChatMessageDTO\> (oldest→newest) | authenticated + allowed pair |
+| POST | `/api/chat/{partnerId}/messages` | SendMessageRequest `{text}` | ChatMessageDTO (201) | authenticated + allowed pair |
+
+- `ChatPartnerDTO {id, firstName, lastName, email, support}` (`support=true` when the partner is an admin / thread is support); `ChatMessageDTO {id, text, fromMe, senderName, createdAt}` — **`fromMe` computed server-side** (`UserDTO` carries no id).
+- `ChatMessage` stores a **canonical participant pair** `userLow`/`userHigh` (by id) + `sender` — one thread per pair, role-agnostic. (Replaced the earlier trainer/client columns.)
+- **Allowed pair** = accepted TRAINER `UserConnection` (owner=client, viewer=trainer, ACCEPTED, either direction) **OR exactly one side is ROLE_ADMIN** (admin support). Enforced on read + send. Admin is only ever a participant of its own support threads → never bypasses private trainer-client chats; unrelated non-admins → 403.
+- Validation: text trimmed, non-blank → 400, max 1000 chars → 400. No WebSocket/attachments/edit/read-flags/group.
+
 ## Not implemented (frontend must not call yet)
 
 - Admin user management — not implemented (FE AdminUsersPage is a placeholder).
