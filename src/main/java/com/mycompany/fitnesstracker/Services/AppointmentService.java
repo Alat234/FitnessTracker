@@ -8,6 +8,7 @@ import com.mycompany.fitnesstracker.Models.BaseException;
 import com.mycompany.fitnesstracker.Models.Enums.AppointmentStatus;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionStatus;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionType;
+import com.mycompany.fitnesstracker.Models.Enums.NotificationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.TrainingAppointment;
 import com.mycompany.fitnesstracker.Models.User;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,10 +35,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AppointmentService {
 
+    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("MMM d, HH:mm");
+
     private final AppointmentRepository      appointmentRepository;
     private final UserConnectionRepository   connectionRepository;
     private final UserRepository             userRepository;
     private final UserService                userService;
+    private final NotificationService        notificationService;
 
     /* ── Create (trainer → connected client) ───────────────── */
     @Transactional
@@ -61,7 +66,11 @@ public class AppointmentService {
         appt.setNotes(request.getNotes());
         appt.setStatus(AppointmentStatus.SCHEDULED);
 
-        return toDTO(appointmentRepository.save(appt));
+        TrainingAppointment saved = appointmentRepository.save(appt);
+        notificationService.notify(client, NotificationType.APPOINTMENT_ASSIGNED,
+                "Workout scheduled", appointmentSummary(saved),
+                "APPOINTMENT", saved.getId(), trainer);
+        return toDTO(saved);
     }
 
     /* ── List current user's appointments (role-aware) ─────── */
@@ -91,7 +100,13 @@ public class AppointmentService {
         if (request.getNotes() != null) appt.setNotes(request.getNotes());
         if (request.getStatus() != null) appt.setStatus(request.getStatus());
 
-        return toDTO(appointmentRepository.save(appt));
+        appointmentRepository.save(appt);
+        if (request.getStatus() == AppointmentStatus.COMPLETED) {
+            notificationService.notify(appt.getClient(), NotificationType.APPOINTMENT_COMPLETED,
+                    "Workout completed", appointmentSummary(appt),
+                    "APPOINTMENT", appt.getId(), trainer);
+        }
+        return toDTO(appt);
     }
 
     /* ── Cancel = soft (status CANCELLED, record preserved) ── */
@@ -101,6 +116,9 @@ public class AppointmentService {
         TrainingAppointment appt = loadOwnedByTrainer(appointmentId, trainer);
         appt.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appt);
+        notificationService.notify(appt.getClient(), NotificationType.APPOINTMENT_CANCELLED,
+                "Workout cancelled", appointmentSummary(appt),
+                "APPOINTMENT", appt.getId(), trainer);
     }
 
     /* ── guards / validation ───────────────────────────────── */
@@ -144,6 +162,12 @@ public class AppointmentService {
         if (startAt != null && endAt != null && !endAt.isAfter(startAt)) {
             throw new BaseException("End time must be after start time", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    /** Short one-line summary for a notification message: "Title · Jun 20, 10:00". */
+    private String appointmentSummary(TrainingAppointment a) {
+        String title = a.getTitle();
+        return a.getStartAt() == null ? title : title + " · " + a.getStartAt().format(WHEN);
     }
 
     /* ── mapping ───────────────────────────────────────────── */

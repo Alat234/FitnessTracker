@@ -34,6 +34,7 @@ class ChatServiceTest {
     private UserConnectionRepository connectionRepository;
     private UserRepository userRepository;
     private UserService userService;
+    private NotificationService notificationService;
     private ChatService service;
 
     private final User trainer = User.builder().id(1L).email("t@test.com").role(Role.ROLE_TRAINER).build();
@@ -47,7 +48,8 @@ class ChatServiceTest {
         connectionRepository = mock(UserConnectionRepository.class);
         userRepository = mock(UserRepository.class);
         userService = mock(UserService.class);
-        service = new ChatService(chatMessageRepository, connectionRepository, userRepository, userService);
+        notificationService = mock(NotificationService.class);
+        service = new ChatService(chatMessageRepository, connectionRepository, userRepository, userService, notificationService);
         // default: no connection between any pair
         when(connectionRepository.findByOwnerAndViewerAndType(any(User.class), any(User.class), any(ConnectionType.class)))
                 .thenReturn(Optional.empty());

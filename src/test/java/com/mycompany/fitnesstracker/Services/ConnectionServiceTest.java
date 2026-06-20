@@ -37,6 +37,8 @@ class ConnectionServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserService userService;
+    @Mock
+    private NotificationService notificationService;
 
     private ConnectionService service;
 
@@ -46,7 +48,7 @@ class ConnectionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ConnectionService(connectionRepository, userRepository, userService, new ConnectionMapper());
+        service = new ConnectionService(connectionRepository, userRepository, userService, new ConnectionMapper(), notificationService);
         owner   = user(1L, "owner@test.com", Role.ROLE_USER);
         friend  = user(2L, "friend@test.com", Role.ROLE_USER);
         trainer = user(3L, "trainer@test.com", Role.ROLE_TRAINER);

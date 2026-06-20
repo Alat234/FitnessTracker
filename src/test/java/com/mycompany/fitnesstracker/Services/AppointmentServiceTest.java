@@ -35,6 +35,7 @@ class AppointmentServiceTest {
     private UserConnectionRepository connectionRepository;
     private UserRepository userRepository;
     private UserService userService;
+    private NotificationService notificationService;
     private AppointmentService service;
 
     @BeforeEach
@@ -43,7 +44,8 @@ class AppointmentServiceTest {
         connectionRepository = mock(UserConnectionRepository.class);
         userRepository = mock(UserRepository.class);
         userService = mock(UserService.class);
-        service = new AppointmentService(appointmentRepository, connectionRepository, userRepository, userService);
+        notificationService = mock(NotificationService.class);
+        service = new AppointmentService(appointmentRepository, connectionRepository, userRepository, userService, notificationService);
     }
 
     private User user(long id, Role role) {

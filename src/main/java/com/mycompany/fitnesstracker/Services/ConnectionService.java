@@ -7,6 +7,7 @@ import com.mycompany.fitnesstracker.Models.Connection.SendInviteRequest;
 import com.mycompany.fitnesstracker.Models.Connection.UserConnection;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionStatus;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionType;
+import com.mycompany.fitnesstracker.Models.Enums.NotificationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Repositories.UserConnectionRepository;
@@ -31,6 +32,7 @@ public class ConnectionService {
     private final UserRepository userRepository;
     private final UserService userService;
     private final ConnectionMapper connectionMapper;
+    private final NotificationService notificationService;
 
     /* ═══════════════════════════════════════════════
        INVITES
@@ -187,7 +189,22 @@ public class ConnectionService {
 
         connection.setStatus(newStatus);
         connection.setRespondedAt(LocalDateTime.now());
-        return connectionMapper.toDTO(connectionRepository.save(connection));
+        UserConnection saved = connectionRepository.save(connection);
+        notifyOwnerOfResponse(saved, viewer, newStatus);
+        return connectionMapper.toDTO(saved);
+    }
+
+    /** Tell the owner (requester) that the invited viewer accepted or declined. */
+    private void notifyOwnerOfResponse(UserConnection connection, User viewer, ConnectionStatus status) {
+        if (status == ConnectionStatus.ACCEPTED) {
+            notificationService.notify(connection.getOwner(), NotificationType.CONNECTION_ACCEPTED,
+                    "Connection accepted", "Your connection request was accepted.",
+                    "CONNECTION", connection.getId(), viewer);
+        } else if (status == ConnectionStatus.DECLINED) {
+            notificationService.notify(connection.getOwner(), NotificationType.CONNECTION_DECLINED,
+                    "Connection declined", "Your connection request was declined.",
+                    "CONNECTION", connection.getId(), viewer);
+        }
     }
 
     private UserConnection getConnectionOrThrow(Long id) {

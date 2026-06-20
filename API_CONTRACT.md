@@ -188,6 +188,21 @@ DTO shapes:
 - **Allowed pair** = accepted TRAINER `UserConnection` (owner=client, viewer=trainer, ACCEPTED, either direction) **OR exactly one side is ROLE_ADMIN** (admin support). Enforced on read + send. Admin is only ever a participant of its own support threads → never bypasses private trainer-client chats; unrelated non-admins → 403.
 - Validation: text trimmed, non-blank → 400, max 1000 chars → 400. No WebSocket/attachments/edit/read-flags/group.
 
+### Notifications — `NotificationController` + `AdminNotificationController` (in-app, REST + polling)
+| Method | Path | Request | Response | Access |
+|---|---|---|---|---|
+| GET | `/api/notifications` | query `unread` (bool, default false) | List\<NotificationDTO\> (newest first) | authenticated (current user's own) |
+| GET | `/api/notifications/unread-count` | — | `{count}` (long) | authenticated |
+| POST | `/api/notifications/{id}/read` | — | 204 | authenticated; recipient only (403 else, 404 missing) |
+| POST | `/api/notifications/read-all` | — | 204 | authenticated |
+| POST | `/api/admin/notifications` | CreateAnnouncementRequest `{title, message?, targetRole?}` | `{recipients}` (int, 201) | authenticated + **ROLE_ADMIN** (service-layer 403) |
+
+- `Notification` entity (`notifications` table): `recipient`(User, not null), `actor`(User, null), `type`, `title`, `message`(TEXT), `entityType`(String), `entityId`(Long), `read`(bool), `system`(bool), `createdAt`(`@PrePersist`). **One row per recipient** (fan-out on create — even system announcements); read/unread state is per-row, no join table.
+- `NotificationDTO {id, type, title, message, entityType, entityId, isRead, system, actorName, createdAt}` (times ISO `yyyy-MM-dd'T'HH:mm:ss`). `NotificationType {APPOINTMENT_ASSIGNED, APPOINTMENT_CANCELLED, APPOINTMENT_COMPLETED, CONNECTION_ACCEPTED, CONNECTION_DECLINED, CHAT_MESSAGE, SYSTEM_ANNOUNCEMENT}` (`@Enumerated(STRING)`); `entityType` ∈ `APPOINTMENT|CONNECTION|CHAT` (null for system).
+- **Emitted** by `NotificationService.notify(...)` from existing services (in the same `@Transactional`, never blocking the action; self-action = no-op): `AppointmentService` create/cancel/update→COMPLETED (→ client); `ConnectionService.respond` accept/decline (→ owner/requester); `ChatService.send` (→ partner).
+- **Admin broadcast** (`createAnnouncement`, `system=true`): `requireAdmin()` service-layer gate (mirrors ArticleService — no `@PreAuthorize`); `targetRole` null → `userRepository.findAll()`, else `findAllByRole(role)`; blank title → 400. `NotificationServiceTest` 14 green (direct-`java`).
+- No SecurityConfig change (covered by `anyRequest().authenticated()`). No WebSocket/email/push/preferences.
+
 ## Not implemented (frontend must not call yet)
 
 - Admin user management — not implemented (FE AdminUsersPage is a placeholder).

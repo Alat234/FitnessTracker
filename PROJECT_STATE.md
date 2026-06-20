@@ -1,6 +1,23 @@
 # PROJECT_STATE.md — FitnessTracker (backend)
 
-Last updated: **2026-06-18**, branch `dev`. **Feature Phases 6A–6F + 7B + 7C complete and verified.**
+Last updated: **2026-06-19**, branch `dev`. **Feature Phases 6A–6F + 7B + 7C (+ admin-support chat) + 7D notifications complete and verified.**
+
+**Phase 7D (In-app notifications, REST + polling — no WebSocket):** `Notification` entity
+(`notifications` table: recipient/actor/type/title/message/entityType/entityId/read/system/createdAt;
+**one row per recipient**, fan-out on create) + `NotificationType` enum (APPOINTMENT_ASSIGNED/
+CANCELLED/COMPLETED, CONNECTION_ACCEPTED/DECLINED, CHAT_MESSAGE, SYSTEM_ANNOUNCEMENT);
+`NotificationRepository` (`findAllByRecipientOrderByCreatedAtDesc`,
+`findAllByRecipientAndReadFalseOrderByCreatedAtDesc`, `countByRecipientAndReadFalse`);
+`NotificationService` (public `notify(...)` emit — skips null/self; `createAnnouncement` admin
+fan-out via `requireAdmin()`; listMy/unreadCount/markRead[owner-checked]/markAllRead);
+`NotificationController` (`/api/notifications` GET list[`?unread`]/unread-count, POST `{id}/read`/
+`read-all`) + `AdminNotificationController` (`POST /api/admin/notifications`). DTOs `NotificationDTO`,
+`CreateAnnouncementRequest`. **Emits wired** into `AppointmentService` (create/cancel/update→COMPLETED
+→ client), `ConnectionService.respond` (accept/decline → owner), `ChatService.send` (→ partner) —
+additive, same `@Transactional`, never block the action. No `SecurityConfig` change. `NotificationServiceTest`
+14 green (direct-`java`); 3 existing tests updated for the new constructor arg (Appointment/Chat/Connection,
+all green). Live-verified on `:8080`: emit on connection-accept (correct recipient + fields), mark-read
+204 + count decrement, ownership 403, admin-gate 403.
 
 **Phase 7C (Trainer-client chat MVP, no real-time):** `ChatMessage` entity (`chat_messages`:
 trainer/client/sender + text≤1000 + createdAt; no read/delete flags); `ChatMessageRepository`

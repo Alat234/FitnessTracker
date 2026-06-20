@@ -7,6 +7,7 @@ import com.mycompany.fitnesstracker.Models.ChatMessage;
 import com.mycompany.fitnesstracker.Models.Connection.UserConnection;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionStatus;
 import com.mycompany.fitnesstracker.Models.Enums.ConnectionType;
+import com.mycompany.fitnesstracker.Models.Enums.NotificationType;
 import com.mycompany.fitnesstracker.Models.Enums.Role;
 import com.mycompany.fitnesstracker.Models.User;
 import com.mycompany.fitnesstracker.Models.UserInfo;
@@ -40,6 +41,7 @@ public class ChatService {
     private final UserConnectionRepository   connectionRepository;
     private final UserRepository             userRepository;
     private final UserService                userService;
+    private final NotificationService        notificationService;
 
     /* ── Partners ──────────────────────────────────────────── */
     @Transactional
@@ -109,7 +111,17 @@ public class ChatService {
         msg.setSender(me);
         msg.setText(text);
 
-        return toDTO(chatMessageRepository.save(msg), me);
+        ChatMessage saved = chatMessageRepository.save(msg);
+        notificationService.notify(partner, NotificationType.CHAT_MESSAGE,
+                "New message", snippet(text),
+                "CHAT", me.getId(), me);
+        return toDTO(saved, me);
+    }
+
+    /** Short preview of a message body for the notification card. */
+    private String snippet(String text) {
+        if (text == null) return null;
+        return text.length() <= 80 ? text : text.substring(0, 80) + "…";
     }
 
     /* ── access / helpers ──────────────────────────────────── */
